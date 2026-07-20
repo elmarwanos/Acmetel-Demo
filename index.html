@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acmetel — Empowering Seamless Communication</title>
+<meta name="description" content="Acmetel powers telecom operators and businesses with high-quality voice, messaging, cloud, and connectivity solutions — trusted for 16 years across three continents.">
+<meta property="og:title" content="Acmetel — Empowering Seamless Communication">
+<meta property="og:description" content="Voice, messaging, cloud, and connectivity solutions for telecom operators and businesses — trusted for 16 years across three continents.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0A1426">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ============ ICON SPRITE ============ -->
+<!-- position:absolute + 0x0 (not display:none) so gradient paint servers stay resolvable by fill="url(#...)" elsewhere in the page -->
+<svg width="0" height="0" style="position:absolute; overflow:hidden" aria-hidden="true">
+  <defs>
+    <linearGradient id="g-blue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8FB5FF"/><stop offset="1" stop-color="#1B56E0"/></linearGradient>
+    <linearGradient id="g-green" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8EE7C2"/><stop offset="1" stop-color="#0E8A56"/></linearGradient>
+    <linearGradient id="g-coral" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFB39E"/><stop offset="1" stop-color="#E24A28"/></linearGradient>
+    <linearGradient id="g-purple" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C7B2FF"/><stop offset="1" stop-color="#6B3FCF"/></linearGradient>
+    <linearGradient id="g-amber" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFD37A"/><stop offset="1" stop-color="#C77E00"/></linearGradient>
+    <linearGradient id="g-cyan" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8CE7F7"/><stop offset="1" stop-color="#0E8DA3"/></linearGradient>
+    <linearGradient id="g-white" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#C7D3E8"/></linearGradient>
+  </defs>
+
+  <symbol id="icon-voice" viewBox="0 0 24 24"><path d="M6 4h3l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 4 6a2 2 0 0 1 2-2Z"/></symbol>
+  <symbol id="icon-messaging" viewBox="0 0 24 24"><path d="M4 5.5h16v10.5H9l-4.5 4V5.5Z"/><path class="icon-detail" d="M8 10h8M8 13h5"/></symbol>
+  <symbol id="icon-cloud" viewBox="0 0 24 24"><path d="M7.2 18a4.7 4.7 0 0 1 .4-9.38A6.2 6.2 0 0 1 19.3 11 3.7 3.7 0 0 1 18.2 18Z"/></symbol>
+  <symbol id="icon-connectivity" viewBox="0 0 24 24"><circle class="icon-stroke" cx="12" cy="12" r="7.5"/><path class="icon-stroke" d="M4.5 12h15"/><path class="icon-stroke" d="M12 4.5c3 3 3 12 0 15"/><path class="icon-stroke" d="M12 4.5c-3 3-3 12 0 15"/></symbol>
+  <symbol id="icon-mnp" viewBox="0 0 24 24"><circle class="icon-stroke" cx="10.5" cy="10.5" r="6.2"/><path class="icon-stroke" d="M15.3 15.3 20 20"/></symbol>
+  <symbol id="icon-did" viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="3.5"/><circle class="icon-dot" cx="9" cy="9.5" r="1.5"/><circle class="icon-dot" cx="15" cy="9.5" r="1.5"/><circle class="icon-dot" cx="9" cy="14.5" r="1.5"/><circle class="icon-dot" cx="15" cy="14.5" r="1.5"/></symbol>
+
+  <symbol id="icon-firewall" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3Z"/><path class="icon-detail" d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="icon-fraud" viewBox="0 0 24 24"><path d="M12 4l9 16H3L12 4Z"/><path class="icon-detail" d="M12 10v4M12 17h.01"/></symbol>
+  <symbol id="icon-probe" viewBox="0 0 24 24"><circle class="icon-stroke" cx="12" cy="13" r="6"/><path class="icon-stroke" d="M12 3v4"/><circle class="icon-dot" cx="12" cy="13" r="1.6"/></symbol>
+  <symbol id="icon-esim" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6V3Z"/><path class="icon-detail-fill" d="M9 12h6v5H9v-5Z"/></symbol>
+
+  <symbol id="icon-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="9.5" rx="2.5"/><path class="icon-detail" d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><circle class="icon-dot" cx="12" cy="15" r="1.3"/></symbol>
+  <symbol id="icon-clipboard" viewBox="0 0 24 24"><rect x="5.5" y="4.5" width="13" height="16" rx="2.2"/><rect class="icon-detail-fill" x="9" y="3" width="6" height="3" rx="1"/><path class="icon-detail" d="M8.5 12.5l2 2 4.5-4.5M8.5 16.5h4"/></symbol>
+  <symbol id="icon-shieldcheck" viewBox="0 0 24 24"><path d="M12 3.5 19 6v6c0 4.4-3 7.2-7 8.5-4-1.3-7-4.1-7-8.5V6Z"/><path class="icon-detail" d="M9 12l2 2 4-4"/></symbol>
+
+  <symbol id="icon-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.1 7-11.6A7 7 0 0 0 5 9.4C5 14.9 12 21 12 21Z"/><circle class="icon-dot" cx="12" cy="9.4" r="2.4"/></symbol>
+  <symbol id="icon-plane" viewBox="0 0 24 24"><path d="M3 13.2 21 6.5l-6.6 8.1M3 13.2l5.4 1.7m-5.4-1.7 3.4 5.5m6-2.6-1.7 5.6-2.9-3.9m4.6-1.7 2.9 3.9"/></symbol>
+  <symbol id="icon-suitcase" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="11.5" rx="2.2"/><path class="icon-detail" d="M9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path class="icon-detail" d="M4 13h16"/></symbol>
+  <symbol id="icon-signal" viewBox="0 0 24 24"><rect x="3" y="14" width="3.4" height="5.5" rx="1"/><rect x="9" y="10" width="3.4" height="9.5" rx="1"/><rect x="15" y="6" width="3.4" height="13.5" rx="1"/></symbol>
+  <symbol id="icon-shieldsearch" viewBox="0 0 24 24"><path d="M12 3.5 19 6v6c0 4.4-3 7.2-7 8.5-4-1.3-7-4.1-7-8.5V6Z"/><circle class="icon-detail" cx="11" cy="11.2" r="2.3"/><path class="icon-detail" d="m13.4 13.6 1.8 1.8"/></symbol>
+
+  <symbol id="icon-quote" viewBox="0 0 32 24"><path d="M4 24V15.5C4 8.5 8 4 14.5 2v4.5C10.8 8 9 10.6 9 14h5.5V24H4Zm14 0V15.5C18 8.5 22 4 28.5 2v4.5c-3.7 1.5-5.5 4.1-5.5 7.5h5.5V24H18Z"/></symbol>
+
+  <symbol id="icon-menu" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="icon-close" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="icon-mark" viewBox="0 0 24 24"><path d="M12 3 L21 20 H16.5 L12 11 L7.5 20 H3 Z"/></symbol>
+</svg>
+
+<div class="page">
+
+  <!-- ============ NAV ============ -->
+  <nav class="nav" id="siteNav">
+    <a href="#top" class="nav__brand">
+      <span class="nav__mark"><svg width="20" height="20"><use href="#icon-mark" fill="#fff"/></svg></span>
+      <span class="nav__word">acmetel<span class="dot">.</span></span>
+    </a>
+    <div class="nav__links">
+      <a href="#services">Services</a>
+      <a href="#products">Products</a>
+      <a href="#why">Why Acmetel</a>
+      <a href="#testimonials">Testimonials</a>
+      <a href="#security">Security</a>
+      <a href="#blog">Blog</a>
+    </div>
+    <div class="nav__actions">
+      <button class="btn btn--ghost-text" type="button">Careers</button>
+      <a href="#contact" class="btn btn--primary btn--sm">Contact us</a>
+      <button class="nav__toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="navMobile">
+        <svg width="22" height="22"><use href="#icon-menu"/></svg>
+      </button>
+    </div>
+    <div class="nav__mobile" id="navMobile">
+      <a href="#services">Services</a>
+      <a href="#products">Products</a>
+      <a href="#why">Why Acmetel</a>
+      <a href="#testimonials">Testimonials</a>
+      <a href="#security">Security</a>
+      <a href="#blog">Blog</a>
+      <a href="#contact" class="btn btn--primary">Contact us</a>
+    </div>
+  </nav>
+
+  <!-- ============ HERO ============ -->
+  <header id="top" class="hero">
+    <div class="hero__bg"><canvas id="heroGlobe"></canvas></div>
+    <div class="hero__vignette"></div>
+
+    <div class="hero__inner">
+      <div class="hero__content">
+        <h1 class="hero__title">Empowering seamless<br><span class="grad-text">communication.</span></h1>
+        <p class="hero__sub">Acmetel powers telecom operators and businesses with high-quality voice, messaging, cloud, and connectivity solutions — trusted for 16 years across three continents.</p>
+        <div class="hero__ctas">
+          <a href="#services" class="btn btn--primary btn--lg">Explore our solutions</a>
+          <a href="#contact" class="btn btn--outline btn--lg">Talk to our team</a>
+        </div>
+        <div class="hero__stats" id="heroStats">
+          <div class="stat"><div class="stat__num" data-count="100" data-suffix="+">0</div><div class="stat__label">Partners worldwide</div></div>
+          <div class="stat"><div class="stat__num" data-count="6" data-suffix="B+">0</div><div class="stat__label">Minutes terminated yearly</div></div>
+          <div class="stat"><div class="stat__num" data-count="2" data-suffix="B+">0</div><div class="stat__label">Messages delivered</div></div>
+          <div class="stat"><div class="stat__num" data-count="16" data-suffix=" yrs">0</div><div class="stat__label">Leading the industry</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero__partners">
+      <div class="hero__partners-label">Trusted by 100+ partners worldwide</div>
+      <div class="marquee">
+        <div class="marquee__track" id="partnerTrack"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ SERVICES ============ -->
+  <section id="services" class="section">
+    <div class="section__head">
+      <div>
+        <div class="eyebrow eyebrow--coral">Chapter 01 — What we do</div>
+        <h2 class="h2">The primary services<br>we offer.</h2>
+      </div>
+      <p class="section__lede">One partner for the entire stack — from the cable landing station to the last message delivered.</p>
+    </div>
+
+    <div class="orbit" id="servicesOrbit">
+      <div class="orbit__ring orbit__ring--outer"></div>
+      <div class="orbit__ring orbit__ring--inner"></div>
+      <div class="orbit__core">
+        <svg width="40" height="40"><use href="#icon-mark" fill="#6FA0FF"/></svg>
+      </div>
+      <div class="orbit__spin" id="orbitSpin"></div>
+    </div>
+
+    <div class="grid grid--3 reveal" id="servicesGrid" data-reveal="services">
+      <!-- injected by main.js -->
+    </div>
+  </section>
+
+  <!-- ============ PRODUCTS ============ -->
+  <section id="products" class="section section--panel">
+    <canvas class="section__lines" id="whyLinesTop"></canvas>
+    <div class="section__inner">
+      <div class="section__head section__head--center">
+        <div class="eyebrow eyebrow--coral-soft">Chapter 02 — Products that protect &amp; connect</div>
+        <h2 class="h2 h2--onpanel">Our wide range of products.</h2>
+        <p class="section__lede section__lede--center">Purpose-built platforms that safeguard operator revenue, verify every route, and keep travelers connected.</p>
+      </div>
+
+      <div class="scroller reveal" id="productsScroller" data-reveal="products">
+        <div class="scroller__sticky">
+          <div class="scroller__stage" id="productsStage">
+            <div class="scroller__rail" id="productsRail"></div>
+            <div class="scroller__tile" id="productsTile"></div>
+          </div>
+        </div>
+        <div class="scroller__steps" id="productsSteps"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WHY ACMETEL ============ -->
+  <section id="why" class="section">
+    <div class="pulse-label">Live network heartbeat · 24/7 NOC</div>
+    <div class="pulse-wrap"><canvas id="pulseCanvas"></canvas></div>
+
+    <div class="why-grid reveal" data-reveal="why">
+      <div>
+        <div class="eyebrow eyebrow--coral">Chapter 03 — Proven at scale</div>
+        <h2 class="h2">Sixteen years of keeping the world talking.</h2>
+        <p class="why-copy">A platform that encompasses business ideas: innovative technology, outstanding client service, and flexible pricing — with round-the-clock network operations that never compromise.</p>
+        <div class="why-points" id="whyPoints"></div>
+      </div>
+      <div class="big-stats" id="bigStats"></div>
+    </div>
+  </section>
+
+  <!-- ============ TESTIMONIALS ============ -->
+  <section id="testimonials" class="section">
+    <div class="section__head section__head--center">
+      <div class="eyebrow eyebrow--coral">Chapter 04 — Trusted in the field</div>
+      <h2 class="h2">What partners tell us.</h2>
+      <p class="section__lede section__lede--center">Feedback from the operators, enterprises, and travelers who run on Acmetel every day.</p>
+    </div>
+    <div class="grid grid--3 reveal" id="testimonialsGrid" data-reveal="testimonials"></div>
+  </section>
+
+  <!-- ============ SECURITY ============ -->
+  <section id="security" class="section section--panel">
+    <div class="section__inner">
+      <div class="section__head section__head--center">
+        <div class="eyebrow eyebrow--coral">Chapter 05 — Built on trust</div>
+        <h2 class="h2">Protecting your data with<br>the highest standards.</h2>
+        <p class="section__lede section__lede--center">Carrier-grade security isn't a feature at Acmetel — it's the foundation every service is built on.</p>
+      </div>
+
+      <div class="orbit orbit--shield" id="securityOrbit">
+        <div class="orbit__ring orbit__ring--outer orbit__ring--rev"></div>
+        <div class="orbit__ring orbit__ring--inner"></div>
+        <div class="orbit__shield">
+          <svg width="112" height="124" viewBox="0 0 120 132">
+            <defs><linearGradient id="acm-shg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1B56E0"/><stop offset="1" stop-color="#4F8CFF"/></linearGradient></defs>
+            <path d="M60 4 L112 24 V64 C112 98 90 118 60 128 C30 118 8 98 8 64 V24 Z" fill="url(#acm-shg)"/>
+            <path d="M42 64 L55 77 L80 50" stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="orbit__scan"></div>
+        </div>
+        <div class="orbit__spin orbit__spin--badges" id="securityBadges"></div>
+      </div>
+
+      <div class="grid grid--3 reveal" id="securityGrid" data-reveal="security"></div>
+    </div>
+  </section>
+
+  <!-- ============ EVENTS + BLOG + CONTACT ============ -->
+  <section id="events" class="section section--events">
+    <div class="section__inner">
+      <div class="section__head section__head--center">
+        <div class="eyebrow eyebrow--coral">Chapter 06 — Meet us on the road</div>
+        <h2 class="h2">Where the industry meets Acmetel.</h2>
+      </div>
+
+      <div class="flight" id="flightPath">
+        <svg width="100%" height="100%" viewBox="0 0 620 130" fill="none" preserveAspectRatio="none">
+          <path d="M14 100 C160 20, 320 120, 606 44" stroke="#4F8CFF" stroke-opacity="0.4" stroke-width="2" stroke-dasharray="7 9" class="flight__dash"/>
+          <circle cx="14" cy="100" r="5" fill="#FF6B4A"/>
+          <circle cx="180" cy="63" r="4" fill="#4F8CFF"/>
+          <circle cx="400" cy="88" r="4" fill="#4F8CFF"/>
+          <circle cx="606" cy="44" r="5" fill="#FF6B4A"/>
+        </svg>
+        <div class="flight__plane" id="flightPlane"><svg width="18" height="18"><use href="#icon-plane" stroke="#EAF0FA" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+
+      <div class="grid grid--5 reveal" id="eventsGrid" data-reveal="events"></div>
+
+      <div class="split reveal" data-reveal="blog">
+        <div class="blog">
+          <div class="blog__title">From the blog</div>
+          <div id="blogList"></div>
+        </div>
+
+        <div id="contact" class="contact-card">
+          <div class="contact-card__title">Get in touch</div>
+          <div class="contact-card__sub">Tell us about your traffic, and we'll route it better.</div>
+          <form id="contactForm" novalidate>
+            <input id="ctName" name="name" placeholder="Name" required autocomplete="name">
+            <input id="ctEmail" name="email" type="email" placeholder="Work email" required autocomplete="email">
+            <textarea id="ctMsg" name="message" placeholder="Message" rows="3" required></textarea>
+            <button type="submit" id="ctSubmit" class="btn btn--primary btn--block">Submit</button>
+          </form>
+          <div class="contact-card__meta">
+            <span>+1 (312) 428-5515</span>
+            <span>connect@acmetel.com</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="final-cta">
+        <h2 class="h2">Ready to elevate<br>your communication?</h2>
+        <div class="hero__ctas hero__ctas--center">
+          <a href="#contact" class="btn btn--primary btn--lg">Connect with us</a>
+          <a href="#services" class="btn btn--outline btn--lg">Explore services</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span>© 2026 Acmetel. All rights reserved.</span>
+    <span class="footer__addr">17W695C Butterfield Road, Oakbrook Terrace, IL 60181 USA</span>
+    <div class="footer__links">
+      <a href="#">LinkedIn</a>
+      <a href="#">Instagram</a>
+      <a href="#">Privacy</a>
+    </div>
+  </footer>
+
+</div>
+
+<script src="js/globe.js" defer></script>
+<script src="js/pulse.js" defer></script>
+<script src="js/main.js" defer></script>
+</body>
+</html>
