@@ -499,36 +499,88 @@
     var angVelocity = baseAngSpeed; // rad/ms, tracked while grabbed for the throw
     var dragSensitivity = 1 / 3; // hover/grab control is 3x less sensitive than a 1:1 drag
 
-    globe.addEventListener('mouseenter', function (e) {
+    // Core grab / drag / throw, shared by both the mouse (hover-scrub) and
+    // touch (press-drag) paths below, so the spin physics stay identical on
+    // desktop and mobile — only how a gesture starts and ends differs.
+    function beginGrab(clientX) {
       grabbed = true;
-      lastX = e.clientX;
+      lastX = clientX;
       lastMoveT = performance.now();
       angVelocity = 0;
-    });
-    globe.addEventListener('mousemove', function (e) {
-      if (!grabbed) return;
+    }
+    function applyDrag(clientX) {
       var now = performance.now();
       var dt = Math.max(1, now - lastMoveT);
       // Negated: project() computes screen-x from phi = mu - theta, so
       // increasing theta actually slides the visible surface left. Without
-      // the flip here, dragging right would move the surface left under
-      // the cursor — backwards from what a direct-manipulation drag should
-      // feel like (the point under your cursor should track your cursor).
-      var dTheta = -((e.clientX - lastX) * dragSensitivity) / K;
+      // the flip here, dragging right would move the surface left under the
+      // cursor/finger — backwards from what a direct-manipulation drag should
+      // feel like (the point under your pointer should track your pointer).
+      var dTheta = -((clientX - lastX) * dragSensitivity) / K;
       angVelocity += (dTheta / dt - angVelocity) * 0.5; // smoothed instantaneous speed
       theta = ((theta + dTheta) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
       paintStrips();
       updateMarkers();
-      lastX = e.clientX;
+      lastX = clientX;
       lastMoveT = now;
-    });
-    globe.addEventListener('mouseleave', function () {
+    }
+    function endGrab() {
       grabbed = false;
       // Throw: keep whatever speed the hand was moving at on release, then
       // let the frame loop below ease it back to the default spin.
       currentAngSpeed = angVelocity;
       targetAngSpeed = baseAngSpeed;
-    });
+    }
+
+    // Mouse: hovering the globe grabs it (no click needed), moving scrubs the
+    // spin, leaving throws it — unchanged desktop behavior.
+    globe.addEventListener('mouseenter', function (e) { beginGrab(e.clientX); });
+    globe.addEventListener('mousemove', function (e) { if (grabbed) applyDrag(e.clientX); });
+    globe.addEventListener('mouseleave', endGrab);
+
+    // Touch: there's no hover on a touchscreen, so a finger press grabs and a
+    // horizontal drag scrubs the spin. A mostly-vertical drag is deliberately
+    // left alone so the page still scrolls when a swipe happens to start on the
+    // globe (CSS `touch-action: pan-y` on .hero-globe backs this at the browser
+    // level). Only the first finger drives the spin; extra touches are ignored.
+    // touchmove is registered passive:false so preventDefault can suppress the
+    // page's own reaction once we've committed to a horizontal spin.
+    var touchId = null, touchStartX = 0, touchStartY = 0, touchDeciding = false;
+    function trackedTouch(list) {
+      for (var i = 0; i < list.length; i++) if (list[i].identifier === touchId) return list[i];
+      return null;
+    }
+    globe.addEventListener('touchstart', function (e) {
+      if (touchId !== null) return; // already tracking a finger
+      var t = e.changedTouches[0];
+      touchId = t.identifier;
+      touchStartX = lastX = t.clientX;
+      touchStartY = t.clientY;
+      touchDeciding = true; // wait for the first real move to tell scroll from spin
+    }, { passive: true });
+    globe.addEventListener('touchmove', function (e) {
+      if (touchId === null) return;
+      var t = trackedTouch(e.changedTouches);
+      if (!t) return;
+      if (touchDeciding) {
+        var adx = Math.abs(t.clientX - touchStartX), ady = Math.abs(t.clientY - touchStartY);
+        if (adx < 8 && ady < 8) return;            // too little movement to decide yet
+        touchDeciding = false;
+        if (ady > adx) { touchId = null; return; } // vertical intent → let the page scroll
+        beginGrab(t.clientX);                      // horizontal intent → take the gesture
+      }
+      if (!grabbed) return;
+      e.preventDefault();
+      applyDrag(t.clientX);
+    }, { passive: false });
+    function endTouch(e) {
+      if (touchId === null || !trackedTouch(e.changedTouches)) return;
+      touchId = null;
+      touchDeciding = false;
+      if (grabbed) endGrab();
+    }
+    globe.addEventListener('touchend', endTouch);
+    globe.addEventListener('touchcancel', endTouch);
 
     var resizeTimer;
     window.addEventListener('resize', function () {
