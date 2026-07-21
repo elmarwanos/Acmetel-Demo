@@ -12,13 +12,14 @@
 <link rel="icon" type="image/svg+xml" href="assets/acmetel-logo-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&display=swap"></noscript>
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
 <!-- ============ ICON SPRITE ============ -->
-<!-- position:absolute + 0x0 (not display:none) so gradient paint servers stay resolvable by fill="url(#...)" elsewhere in the page -->
 <svg width="0" height="0" style="position:absolute; overflow:hidden" aria-hidden="true">
   <defs>
     <linearGradient id="g-blue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8FB5FF"/><stop offset="1" stop-color="#1B56E0"/></linearGradient>
@@ -117,10 +118,7 @@
       <div class="hero__globe-col">
         <div class="hero-globe-wrap" id="heroGlobeWrap">
           <div class="hero-globe">
-            <!-- Link paths are generated in main.js from a data list (see
-                 globeLinkEdges) rather than hand-written here — with this
-                 many connections, a plain array of pairs is far easier to
-                 keep extending than duplicating markup per edge. -->
+            <!-- Link paths are generated in main.js from a data list (see globeLinkEdges) -->
             <svg class="globe-links" preserveAspectRatio="none"></svg>
             <div class="globe-marker" data-id="fr" data-lat="48.9" data-lon="2.4">
               <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -0.0s;">
@@ -197,7 +195,7 @@
     </div>
 
     <div class="grid grid--3 reveal" id="servicesGrid" data-reveal="services">
-      <!-- injected by main.js -->
+      <!-- injected from main.js -->
     </div>
   </section>
 
