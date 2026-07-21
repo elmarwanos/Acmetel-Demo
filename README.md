@@ -1,82 +1,80 @@
-# Acmetel: Homepage (Option B, "Momentum" dark)
+# Acmetel — Marketing Homepage
 
-Static, dependency-free rebuild of the approved dark homepage design, updated for the
-client's Option B feedback (2026-07-16). Plain HTML/CSS/JS, no build step and no framework,
-so it can be pushed straight to GitHub Pages.
+A single-page marketing site for Acmetel, hand-built as a static site: plain HTML,
+CSS, and JavaScript with **no framework and no build step**. The whole experience —
+animated hero, interactive globe, scroll-driven product story, a live "network
+heartbeat", and cursor-reactive cards — ships as three small files plus a handful of
+images. It loads fast, has nothing to install or keep patched, and can be hosted
+anywhere that serves static files.
 
-## Structure
+**What's in the repo**
 
-```
-website code/
-├── index.html          # single-page homepage
-├── css/styles.css       # all styling (design tokens at the top)
-├── js/pulse.js           # "Why Acmetel" heartbeat canvas
-├── js/main.js            # nav, data-driven sections, interactions, reveal-on-scroll
-├── assets/favicon.svg
-├── assets/globe.jpg      # hero globe texture
-└── README.md
-```
+| Path | What it is |
+|------|------------|
+| `index.html` | The entire page, one document |
+| `css/styles.css` | All styling; design tokens (colour, type, spacing) sit at the top |
+| `js/main.js` | Navigation, the data-driven sections, and every interaction |
+| `js/pulse.js` | The ECG "network heartbeat" canvas in *Why Acmetel* |
+| `assets/` | Logos, partner marks, and the globe texture (`globe.webp`) |
 
-## What changed vs. the exported design
+What's committed is exactly what runs in the browser — no bundler, no dependencies.
 
-- **Partner carousel moved into the hero**, visible on first load, full-colour wordmarks
-  (was a separate greyscale strip further down the page).
-- **Hero globe replaced** with a lit, rotating satellite-texture sphere (client-supplied
-  reference), ported from a React/Tailwind component to plain CSS so it fits this
-  project's stack: no build step required.
-- **Services cards** now tilt/glow/lift toward the cursor, with new dimensional
-  gradient-lit icons (replacing the flat line icons and emoji).
-- **Products section** rebuilt as a scroll/cursor-driven layout (sticky visual panel,
-  progress rail that advances as you scroll, subtle cursor parallax) instead of a static grid.
-- **New testimonials section**: sample/placeholder quotes, swap in real client
-  testimonials before launch.
-- Removed the floating pill/badge above the hero headline and all emoji-as-icon usage
-  sitewide, replaced with a custom SVG icon set.
+## View it live
 
-## Running locally
+The site is published with GitHub Pages:
 
-No build step needed. From this folder:
+### → https://elmarwanos.github.io/website-code/
+
+Every push to `main` redeploys it automatically. A GitHub Actions workflow
+(`.github/workflows/deploy-pages.yml`) minifies the CSS and JavaScript during the
+build and publishes the result, so visitors always get the optimised version while
+the source in the repo stays readable.
+
+To preview it on your own machine, from this folder:
 
 ```bash
 python3 -m http.server 8080
 # then open http://localhost:8080
 ```
 
-(Opening `index.html` directly via `file://` also works, but a local server is closer
-to how GitHub Pages will actually serve it.)
+## How the globe was built
 
-## Deploying to GitHub Pages
+The rotating globe in the hero looks like a 3D render, but there is **no WebGL and no
+3D library** behind it. It's a deliberate illusion assembled from a flat image, CSS,
+and a little geometry — which is what keeps it around 130 KB and smooth on a phone,
+where a real 3D engine would cost several megabytes.
 
-1. Create a new GitHub repo (or use an existing one) and push this `website code/`
-   folder's contents to it. The repo root should contain `index.html` directly
-   (not nested inside another folder), e.g.:
-   ```bash
-   cd "website code"
-   git init
-   git add .
-   git commit -m "Acmetel homepage: Option B dark, client feedback round"
-   git branch -M main
-   git remote add origin <your-repo-url>
-   git push -u origin main
-   ```
-2. In the repo on GitHub: **Settings → Pages**.
-3. Under "Build and deployment", set **Source** to "Deploy from a branch".
-4. Set **Branch** to `main` and folder to `/ (root)`, then Save.
-5. GitHub will publish at `https://<your-username>.github.io/<repo-name>/` within a
-   minute or two.
-6. Optional: add a custom domain under Pages settings once DNS is ready (CNAME record
-   pointing at `<your-username>.github.io`).
+**A flat map, sliced into strips.** The source is a single equirectangular (2:1)
+night-lights photo of Earth. Painting it as one flat panning background reads like a
+photo scrolling behind a porthole, so instead the globe is split into ~24 thin
+**vertical strips**, each showing its own slice of the map.
 
-## Notes / things to swap before a real launch
+**Sphere geometry, one strip at a time.** Every strip is positioned and scaled with an
+orthographic sphere projection (`screen-x = R · sin(angle)`). Strips near the centre
+come out **wide and pan fast**; strips near the edge come out **narrow and pan slow**.
+That single rule reproduces the two cues your eye reads as "sphere": the horizontal
+*foreshortening* toward the edges, and the *deceleration* of surface features as they
+turn away from you. Adjacent strips are stitched edge-to-edge so the seams never show.
 
-- Contact form is a front-end-only demo (no backend wired up). It shows a success
-  state locally but doesn't send anywhere yet.
-- Testimonial quotes are placeholder copy, replace with real, attributed client quotes.
-- Partner strip renders brand-coloured wordmarks (no real logo assets were available in
-  the export). Swap in actual partner SVG logos when you have them for full accuracy.
-- `assets/globe.jpg` is a third-party demo texture pulled in from the reference component
-  you shared, kept only for this build. Before real launch, replace it with a properly
-  licensed (or Acmetel-owned) Earth texture, matched to the pan distance in
-  `css/styles.css` (search "earthRotate") if the new image's dimensions differ.
-- Blog/events/careers content is static placeholder text matching the original design's
-  copy. The full CMS-driven build is out of scope for this static homepage demo.
+**Depth and light, faked convincingly.** A circular clip turns the rectangle into a
+disc. A crescent **rim-light** and a **limb-darkening** shadow — two CSS gradient
+layers — make the surface curve away at the edges the way a photographed sphere does.
+A scatter of **city-light dots** is blended over the photo and recoloured to Acmetel
+green using CSS blend modes.
+
+**Live markers and data links.** Acmetel's real markets are pinned to true
+latitude/longitude and run through the *same* projection, so they slow and compress
+toward the edge in lockstep with the surface beneath them — they feel stuck to the
+globe rather than floating over it. The glowing arcs between them are SVG paths, bowed
+like hops over the sphere and animated with a dashed "flow" to suggest live traffic
+moving across the network.
+
+**Rotation and interaction.** The globe spins by advancing a single angle at a constant
+rate, exactly how a turntable turns. On desktop you can **grab and scrub** it with the
+cursor; let go and it "throws", then eases back to its steady spin. On touch devices a
+horizontal drag does the same, while vertical swipes are left alone so the page still
+scrolls normally.
+
+**Built to stay cheap.** The texture is served as an optimised WebP, and the animation
+loop **pauses itself** whenever the globe scrolls off-screen or the browser tab is in
+the background — so it never spends battery drawing something nobody is looking at.

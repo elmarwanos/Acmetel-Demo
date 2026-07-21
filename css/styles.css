@@ -252,6 +252,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   height: 100%;
   border-radius: 50%;
   overflow: hidden;
+  /* Reserve vertical swipes for page scrolling while letting the touch spin
+     handler (heroGlobeSpin in main.js) own horizontal drags — so a finger
+     swipe that starts on the globe still scrolls the hero on a phone. */
+  touch-action: pan-y;
   box-shadow:
     0 0 30vw 2vw rgba(9, 101, 32, 0.692), 0 0 30vw 2vw rgba(7, 84, 70, 0.692),
     inset -18px -16px 50px rgba(3, 20, 12, 0.6);
