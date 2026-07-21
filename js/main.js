@@ -778,20 +778,18 @@
       if (cv.width !== Math.round(w * dpr)) { cv.width = w * dpr; cv.height = h * dpr; }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
-      var n = 6;
-      // Amplitudes scaled down to match .section__lines now being a
-      // compact fixed-height band (styles.css) instead of the whole
-      // (very tall) products panel. With h now only ~90-150px, 6 lines
-      // sit just 15-25px apart (h/n) — the original 24/26px wiggle (sized
-      // for spreading loosely across thousands of px) would swing each
-      // line across its neighbors' rows; kept small enough here to stay
-      // within that per-line spacing so they read as distinct rows.
+      var n = 12;
+      // .section__lines is inset:0 over the whole (very tall, scroll-jacked)
+      // products panel. Doubled from 6 to 12 lines in the same space, so
+      // amplitude is halved from the 6-line tuning to match the now-halved
+      // row spacing (h/n) — otherwise neighboring lines would cross into
+      // each other's rows instead of reading as distinct waves.
       for (var i = 0; i < n; i++) {
-        var y0 = (h / n) * i + Math.sin(t * 0.4 + i) * 4;
+        var y0 = (h / n) * i + Math.sin(t * 0.4 + i) * 11;
         ctx.strokeStyle = 'rgba(255,255,255,0.05)';
         ctx.beginPath();
         for (var x = 0; x <= w; x += 24) {
-          var y = y0 + Math.sin(x * 0.008 + t * 0.5 + i * 1.7) * 5;
+          var y = y0 + Math.sin(x * 0.008 + t * 0.5 + i * 1.7) * 12;
           if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         }
         ctx.stroke();

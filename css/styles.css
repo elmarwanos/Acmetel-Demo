@@ -183,7 +183,13 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    ========================================================================== */
 .hero {
   position: relative;
-  min-height: 100vh;
+  /* html has zoom:1.2 sitewide, and zoom scales the rendered box *after*
+     layout while vh is still computed against the real, unzoomed viewport
+     — so a plain 100vh here would paint at 120% of the actual viewport
+     height, pushing .hero__partners below the first screen. Dividing by
+     the zoom factor cancels that out so this still fills exactly one
+     viewport once rendered. */
+  min-height: calc(100vh / 1.2);
   display: flex; flex-direction: column;
   padding-top: var(--nav-h);
   overflow: clip;
@@ -214,7 +220,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    of stepping between fixed breakpoints. */
 .hero__globe-col { display: flex; align-items: center; justify-content: center; }
 .hero-globe-wrap {
-  position: relative; width: clamp(300px, 34vw, 540px); aspect-ratio: 1;
+  /* the vw term is divided by the sitewide zoom (see .hero's comment) —
+     zoom paints this 1.2x bigger after layout, so without the /1.2 the
+     globe would render noticeably larger than the clamp() bounds imply. */
+  position: relative; width: clamp(300px, calc(34vw / 1.2), 540px); aspect-ratio: 1;
 }
 /* City lights: a hand-placed scatter of small glow dots (biased toward
    Acmetel's real markets: North America, Europe, the Gulf, Pakistan, East
@@ -383,11 +392,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .hero__content {
   max-width: 600px; text-align: left;
-  display: flex; flex-direction: column; align-items: flex-start; gap: clamp(16px, 2.2vh, 22px);
+  display: flex; flex-direction: column; align-items: flex-start; gap: clamp(16px, calc(2.2vh / 1.2), 22px);
 }
 .hero__title {
   font-family: var(--font-display);
-  font-size: clamp(38px, 4.2vw, 60px);
+  font-size: clamp(38px, calc(4.2vw / 1.2), 60px);
   line-height: 1.06; font-weight: 800; letter-spacing: -0.03em;
 }
 .hero__sub { font-size: 17px; line-height: 1.55; color: var(--text-dim-2); max-width: 520px; }
@@ -479,8 +488,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    than a faint texture smeared across the entire (mostly empty, by
    comparison) panel height. */
 .section__lines {
-  position: absolute; left: 0; right: 0; pointer-events: none; z-index: 0;
-  top: clamp(140px, 16vw, 220px); height: clamp(90px, 10vw, 150px);
+  /* canvas is a replaced element, so inset:0 alone won't stretch it —
+     the browser falls back to its intrinsic backing-store size (whatever
+     main.js last set cv.width/height to) instead of filling the section.
+     Explicit width/height forces it to actually fill the containing block. */
+  position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;
 }
 
 .section__head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 48px; }
@@ -637,7 +649,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    midline, and shifting it back up by half its own height lands its
    center there instead of its top. A fixed nav-h-based offset (the
    previous value) pins the top edge near the top of the screen instead. */
-.scroller__sticky { position: sticky; top: 39%; align-self: start; height: fit-content; -webkit-transform: translateY(-50%); -moz-transform: translateY(-50%); -ms-transform: translateY(-50%); -o-transform: translateY(-50%); }
+.scroller__sticky { position: sticky; top: 30%; align-self: start; height: fit-content; -webkit-transform: translateY(-50%); -moz-transform: translateY(-50%); -ms-transform: translateY(-50%); -o-transform: translateY(-50%); }
 .scroller__stage {
   position: relative; width: 100%; max-width: 420px; aspect-ratio: 1 / 0.95; border-radius: 30px;
   background: var(--product-bg, linear-gradient(150deg, #3E7BDD, #163E8F));
@@ -654,7 +666,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .scroller__index {
   position: absolute; z-index: 0; top: 22px; left: 26px; font-family: var(--font-display); font-weight: 800;
-  font-size: 72px; line-height: 1; letter-spacing: -0.03em; color: rgba(255,255,255,0.14); pointer-events: none;
+  font-size: 72px; line-height: 1; letter-spacing: -0.03em; color: #fff; pointer-events: none;
 }
 .scroller__tile { position: relative; z-index: 1; width: 190px; height: 190px; display: grid; place-items: center; }
 .scroller__tile svg { width: 108px; height: 108px; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.4)); }
