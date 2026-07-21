@@ -220,10 +220,20 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    of stepping between fixed breakpoints. */
 .hero__globe-col { display: flex; align-items: center; justify-content: center; }
 .hero-globe-wrap {
-  /* the vw term is divided by the sitewide zoom (see .hero's comment) —
-     zoom paints this 1.2x bigger after layout, so without the /1.2 the
-     globe would render noticeably larger than the clamp() bounds imply. */
-  position: relative; width: clamp(300px, calc(34vw / 1.2), 540px); aspect-ratio: 1;
+  /* main.js positions every strip and marker by reading this box's
+     getBoundingClientRect() (already zoomed) and writing the results back
+     as inline left/top/width px on its own descendants — but zoom re-
+     applies to *every* new px value a descendant of a zoomed subtree
+     specifies, including ones already computed from an already-zoomed
+     measurement. That compounds into markers landing 1.2x further from
+     the box's top-left corner than intended (drifting toward the
+     bottom-right). zoom here cancels the inherited 1.2 back to a net 1.0
+     for this whole subtree, so main.js's box measurements and its own
+     inline-px writes stay in one consistent, unzoomed coordinate space —
+     and since 1.2 * (1/1.2) = 1, plain 34vw now renders at the exact same
+     visual size the earlier calc(34vw/1.2) compensation was going for. */
+  zoom: calc(1 / 1.2);
+  position: relative; width: clamp(300px, 34vw, 540px); aspect-ratio: 1;
 }
 /* City lights: a hand-placed scatter of small glow dots (biased toward
    Acmetel's real markets: North America, Europe, the Gulf, Pakistan, East
