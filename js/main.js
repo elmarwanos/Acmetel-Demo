@@ -537,29 +537,30 @@
   (function partners() {
     var track = document.getElementById('partnerTrack');
     if (!track) return;
+    // Real logo files (assets/partners/), sourced from Wikimedia Commons /
+    // official brand kits — see acmetel_partner_logos memory for exact
+    // provenance per file. All chips get a white pill backing so every
+    // logo's native colors stay true against this site's dark navy.
     var partners = [
-      { name: 'Omantel', color: '#E4032E' },
-      { name: 'stc', color: '#4E2A84' },
-      { name: 'Mobily', color: '#6DBE45' },
-      { name: 'Sinch', color: '#2851E3' },
-      { name: 'Zong 4G', color: '#8A3FD1' },
-      { name: 'Etisalat Misr', color: '#00A19A' },
-      { name: 'Zain', color: '#6FA23A' },
-      { name: 'Twilio', color: '#F22F46' },
-      { name: 'Airtel', color: '#ED1C24' },
-      { name: 'Orange', color: '#FF7900' },
-      { name: 'PTCL', color: '#00843D' },
-      { name: 'BICS', color: '#0072CE' },
-      { name: 'TikTok', color: '#25F4EE', duo: true },
-      { name: 'e&', color: '#B02A45' },
+      { name: 'Omantel', file: 'omantel.svg' },
+      { name: 'stc', file: 'stc.svg' },
+      { name: 'Mobily', file: 'mobily.svg' },
+      { name: 'Sinch', file: 'sinch.svg' },
+      { name: 'Zong 4G', file: 'zong.png' },
+      { name: 'Etisalat Misr', file: 'etisalat-misr.svg' },
+      { name: 'Zain', file: 'zain.svg', forceDark: true },
+      { name: 'Twilio', file: 'twilio.svg' },
+      { name: 'Airtel', file: 'airtel.svg' },
+      { name: 'Orange', file: 'orange.svg' },
+      { name: 'PTCL', file: 'ptcl.png' },
+      { name: 'BICS', file: 'bics.png', forceDark: true },
+      { name: 'TikTok', file: 'tiktok.svg' },
+      { name: 'e&', file: 'e-and.svg' },
     ];
     var loop = partners.concat(partners);
     track.innerHTML = loop.map(function (p) {
-      var word = p.duo
-        ? '<span class="partner-chip__word"><span>Tik</span><span>Tok</span></span>'
-        : '<span class="partner-chip__word">' + p.name + '</span>';
-      return '<span class="partner-chip' + (p.duo ? ' partner-chip--duo' : '') + '" style="color:' + (p.duo ? '#EAF0FA' : p.color) + '">' +
-        '<span class="partner-chip__dot" style="background:' + p.color + '"></span>' + word + '</span>';
+      return '<span class="partner-chip partner-chip--pill">' +
+        '<img class="partner-chip__logo' + (p.forceDark ? ' partner-chip__logo--dark' : '') + '" src="assets/partners/' + p.file + '" alt="' + p.name + '" loading="lazy"></span>';
     }).join('');
   })();
 
