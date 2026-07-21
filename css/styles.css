@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Acmetel — Design tokens
+   Acmetel, Design tokens
    ========================================================================== */
 :root {
   --bg:        #0A1426;
@@ -59,7 +59,7 @@
    Reset
    ========================================================================== */
 * { margin: 0; padding: 0; box-sizing: border-box; }
-/* overflow-x: clip (not hidden/auto/scroll) on purpose — clip contains
+/* overflow-x: clip (not hidden/auto/scroll) on purpose, clip contains
    horizontal overflow without the other-axis-forced-to-auto side effect
    overflow-x:hidden has, which turns html/body into scroll containers and
    breaks position:sticky for every descendant on the page. */
@@ -77,7 +77,7 @@ a { color: var(--blue); text-decoration: none; }
 a:hover { color: var(--coral); }
 button { font-family: inherit; }
 ::selection { background: #6A3A2C; color: #fff; }
-/* NOTE: no overflow-x here — an overflow value on any ancestor of a
+/* NOTE: no overflow-x here, an overflow value on any ancestor of a
    position:sticky element (like .scroller__sticky in the products section)
    turns that ancestor into a scroll container and breaks sticky positioning.
    The horizontal-overflow guard lives on html/body only, which are safe
@@ -152,13 +152,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   border-bottom: 1px solid var(--border-soft);
 }
 .nav__brand { display: flex; align-items: center; gap: 10px; }
-.nav__mark {
-  width: 36px; height: 36px; border-radius: 11px;
-  background: linear-gradient(135deg, #4F8CFF, #1B56E0);
-  display: grid; place-items: center; flex-shrink: 0;
-}
-.nav__word { font-family: var(--font-display); font-weight: 800; font-size: 21px; letter-spacing: -0.02em; color: var(--text); }
-.nav__word .dot { color: var(--coral); }
+.nav__logo { height: 30px; width: auto; display: block; }
 .nav__links { display: flex; align-items: center; gap: 26px; font-size: 15px; font-weight: 500; }
 .nav__links a { color: var(--text-dim-2); }
 .nav__links a:hover { color: var(--text); }
@@ -196,29 +190,194 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   background: linear-gradient(180deg, #101E3C 0%, #0A1426 72%);
 }
 .hero__bg { position: absolute; inset: 0; z-index: 0; }
-.hero__bg canvas { width: 100%; height: 100%; opacity: 0.95; }
+/* Canvas is sized in device px by main.js (for crisp dots at any DPR) and
+   scaled back down via CSS width/height — display:block avoids the couple
+   of stray px of inline-element baseline gap a canvas gets by default. */
+.hero__particles { display: block; width: 100%; height: 100%; }
+
+/* Hero globe: built from N vertical strips (main.js) instead of one flat
+   panned texture. A single panned background-position is a rigid shift —
+   every pixel moves at the same instantaneous speed no matter where it
+   sits on screen — which reads as a strip of photo scrolling behind a
+   porthole rather than a rotating sphere. Splitting the disc into narrow
+   angular strips lets each one carry its own background-size scale and its
+   own pan speed, both derived from an orthographic sphere projection
+   (screen-x = R*sin(angle)): strips near the center are wide and pan fast,
+   strips near the limb are narrow and pan slow, which reproduces both the
+   deceleration and the horizontal foreshortening a real sphere shows near
+   its edge. .hero-globe itself no longer paints the texture — it only
+   supplies the circular clip, box-shadow, and the static lighting overlays
+   below; the strips (position:absolute, z-index:0) are generated and
+   sized/positioned by main.js's heroGlobeSpin(), which is also what's
+   still responsible for the drag/throw spin control described there.
+   Sized fluidly with clamp() so it grows/shrinks with the viewport instead
+   of stepping between fixed breakpoints. */
+.hero__globe-col { display: flex; align-items: center; justify-content: center; }
+.hero-globe-wrap {
+  position: relative; width: clamp(300px, 34vw, 540px); aspect-ratio: 1;
+}
+/* City lights: a hand-placed scatter of small glow dots (biased toward
+   Acmetel's real markets: North America, Europe, the Gulf, Pakistan, East
+   Africa, East Asia) rendered as one extra background layer and blended
+   additively (screen) over the day texture, so they read strongest over
+   the darkened night-side terminator and mostly disappear in daylight
+   areas, without needing a second photographic night-lights image.
+   background-size/position are given as single (non-comma) values, which
+   CSS applies uniformly to every layer in background-image, so this dot
+   layer and the photo layer stay perfectly registered and pan in lockstep
+   off the same --globe-pan/earthRotate animation used for the photo. */
+.hero-globe {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow:
+    0 0 20vw rgba(255, 152, 78, 0.692), 0 0 30vw rgba(255, 208, 78, 0.692),
+    inset -18px -16px 50px rgba(3, 9, 24, 0.6);
+}
+/* One angular slice of the sphere. Geometry (left/width) and the pan scale
+   (background-size) are static per strip, recomputed on resize; only
+   background-position-x is touched every frame. Same composite background
+   (city-light dots screen-blended over globe.jpg) the old single-div
+   version used, just now duplicated per strip so each can carry its own
+   scale — background-size here is set inline per-strip in JS, since it's
+   what actually encodes that strip's foreshortening. */
+.hero-globe-strip {
+  position: absolute; top: 0; height: 100%; z-index: 0;
+  background-image:    radial-gradient(circle at 8% 34%, #ffe6b0 0 1.4px, rgba(255,230,176,0.35) 3px, transparent 4.5px),    radial-gradient(circle at 14% 28%, #ffe6b0 0 1px, rgba(255,230,176,0.3) 2.4px, transparent 4px),    radial-gradient(circle at 20% 40%, #ffe6b0 0 1.2px, rgba(255,230,176,0.3) 2.6px, transparent 4px),    radial-gradient(circle at 46% 21%, #ffe6b0 0 1.4px, rgba(255,230,176,0.35) 3px, transparent 4.5px),    radial-gradient(circle at 51% 26%, #ffe6b0 0 1px, rgba(255,230,176,0.3) 2.2px, transparent 3.6px),    radial-gradient(circle at 60% 41%, #ffd88f 0 1.5px, rgba(255,216,143,0.35) 3.2px, transparent 5px),    radial-gradient(circle at 65% 39%, #ffd88f 0 1px, rgba(255,216,143,0.3) 2.2px, transparent 3.6px),    radial-gradient(circle at 58% 37%, #ffd88f 0 1px, rgba(255,216,143,0.3) 2.2px, transparent 3.6px),    radial-gradient(circle at 49% 54%, #ffe6b0 0 1.2px, rgba(255,230,176,0.3) 2.6px, transparent 4px),    radial-gradient(circle at 58% 59%, #ffe6b0 0 1.2px, rgba(255,230,176,0.3) 2.6px, transparent 4px),    radial-gradient(circle at 69% 37%, #ffe6b0 0 1.2px, rgba(255,230,176,0.3) 2.6px, transparent 4px),    radial-gradient(circle at 79% 51%, #ffd88f 0 1.4px, rgba(255,216,143,0.35) 3px, transparent 4.5px),    radial-gradient(circle at 88% 29%, #ffe6b0 0 1px, rgba(255,230,176,0.3) 2.2px, transparent 3.6px),    radial-gradient(circle at 91% 77%, #ffe6b0 0 1px, rgba(255,230,176,0.3) 2.2px, transparent 3.6px),    url('../assets/globe.jpg');
+  background-position: 0 0;
+  background-blend-mode: screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, normal;
+}
+/* Rim light: centered outside the globe's own top-left corner rather than
+   on its face, so the visible piece is only the crescent where this circle
+   overlaps the globe's circle — the intersection of two circles is itself
+   curved, so the highlight follows the sphere's actual curvature (the way
+   a lit crescent moon does) instead of reading as a flat painted-on spot.
+   Percentage sizing needs the ellipse form (a plain circle can't take a
+   percentage radius), but the box is 1:1 so equal x/y percentages still
+   draw a true circle. Kept as its own layer, not folded into the
+   background-image list below, so it stays fixed while that list pans. */
+.hero-globe::before {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(50% 50% at -14% 6%,
+    rgba(255, 241, 217, 0.92) 0%,
+    rgba(255, 226, 182, 0.5) 55%,
+    rgba(255, 205, 155, 0.16) 78%,
+    transparent 100%);
+  mix-blend-mode: screen;
+}
+/* Limb darkening: a soft ring of shadow toward the perimeter (multiplied,
+   not just an inset shadow) so the surface reads as curving away from the
+   viewer at the edges instead of sitting flat like a photo pasted on a
+   disc — real photographed spheres darken toward the limb the same way. */
+.hero-globe::after {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 50% 50%,
+    transparent 58%,
+    rgba(3, 9, 20, 0.2) 83%,
+    rgba(3, 9, 20, 0.46) 100%);
+  mix-blend-mode: multiply;
+}
+/* Globe markers: pinned to a real lat/long on the globe.jpg texture and
+   repositioned every frame in main.js to track the same pan the surface
+   itself is on, so they read as attached to a spot on the sphere rather
+   than floating over it. left/top are set in JS as px within .hero-globe's
+   own box (which is what the lat/long -> pixel math is done in terms of);
+   this rule only supplies the local centering/look. Fixed inside
+   .hero-globe so it inherits the circular overflow:hidden clip for free —
+   when the point pans past the visible edge it's simply cut off, same as
+   the terrain underneath it. pointer-events: none throughout keeps markers
+   from ever intercepting the grab/throw spin interaction. */
+.globe-marker {
+  position: absolute; top: 0; left: 0; pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.15s linear;
+  z-index: 1;
+}
+/* The Acmetel mark itself as the marker, in place of a generic dot + a
+   named label — small and enough of a glow to read against the globe at a
+   glance, no text needed. The bob is a separate animation on the icon
+   (not the .globe-marker container, which main.js already drives via
+   transform for position/scale) so the two motions compose without
+   fighting over the same property. Each marker's inline animation-delay
+   staggers the bob out of phase with its neighbors for an organic feel
+   rather than the whole cluster bobbing in lockstep. */
+.globe-marker__icon {
+  position: absolute; top: 50%; left: 50%;
+  /* .globe-marker has no explicit size (its only child is this
+     absolutely-positioned img, which never contributes to a parent's
+     shrink-to-fit auto width), so it collapses to 0 width — and the
+     site-wide `img { max-width: 100% }` reset would then resolve against
+     that 0 and clamp this icon to nothing. max-width: none opts back out. */
+  width: 21px; height: auto; max-width: none; margin: -10.5px 0 0 -10.5px;
+  filter:
+    drop-shadow(0 0 3px rgba(0,0,0,0.6))
+    drop-shadow(0 0 7px rgba(47, 208, 196, 0.8))
+    drop-shadow(0 3px 5px rgba(0,0,0,0.55));
+  animation: markerFloat 3.9s ease-in-out infinite;
+}
+@keyframes markerFloat {
+  0%, 100% { transform: translateY(-3px); }
+  50% { transform: translateY(3px); }
+}
+/* Data links: an SVG overlay sharing the same .hero-globe box coordinate
+   space as the markers above (viewBox is kept in sync with it in
+   main.js), so a path's endpoints can reuse each marker's already-computed
+   bx/by directly with no extra conversion. Two paths per link, both redrawn
+   every frame with the same curved `d`: a soft constant glow underneath,
+   and a short dashed stroke animating its dashoffset on top to read as
+   discrete pulses of data traveling the route rather than a static wire.
+   Sits behind the marker divs (earlier in DOM order, same z-index) so pins
+   render on top of the lines feeding into them. */
+.globe-links {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 1; overflow: visible;
+}
+.globe-link {
+  fill: none; stroke-linecap: round; opacity: 0;
+  transition: opacity 0.15s linear;
+}
+.globe-link--glow {
+  stroke: #4FD8FF; stroke-width: 2;
+  filter: drop-shadow(0 0 4px rgba(79, 216, 255, 0.75));
+}
+.globe-link--flow {
+  stroke: #CFFFF3; stroke-width: 2.2;
+  stroke-dasharray: 2 16;
+  animation: globeLinkFlow 0.9s linear infinite;
+  filter: drop-shadow(0 0 3px rgba(207, 255, 243, 0.9));
+}
+@keyframes globeLinkFlow { to { stroke-dashoffset: -18; } }
 .hero__vignette {
   position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  background: radial-gradient(ellipse 62% 58% at 50% 42%, rgba(10,20,38,0.94) 28%, rgba(10,20,38,0.74) 58%, transparent 100%);
+  background: linear-gradient(90deg, rgba(10, 20, 38, 0.72) 0%, rgba(10, 20, 38, 0.35) 42%, transparent 68%);
 }
 .hero__inner {
   position: relative; z-index: 2; flex: 1;
-  display: flex; align-items: center; justify-content: center;
-  padding: 24px 24px 20px;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center; gap: clamp(24px, 4vw, 56px);
+  width: 100%; max-width: 1280px; margin: 0 auto;
+  padding: 24px clamp(24px, 4vw, 48px) 20px;
 }
 .hero__content {
-  max-width: 920px; text-align: center;
-  display: flex; flex-direction: column; align-items: center; gap: 22px;
+  max-width: 600px; text-align: left;
+  display: flex; flex-direction: column; align-items: flex-start; gap: clamp(16px, 2.2vh, 22px);
 }
 .hero__title {
   font-family: var(--font-display);
-  font-size: clamp(42px, 6.4vw, 82px);
-  line-height: 1.04; font-weight: 800; letter-spacing: -0.03em;
+  font-size: clamp(38px, 4.2vw, 60px);
+  line-height: 1.06; font-weight: 800; letter-spacing: -0.03em;
 }
-.hero__sub { font-size: 18px; line-height: 1.55; color: var(--text-dim-2); max-width: 620px; }
-.hero__ctas { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.hero__sub { font-size: 17px; line-height: 1.55; color: var(--text-dim-2); max-width: 520px; }
+.hero__ctas { display: flex; gap: 14px; flex-wrap: wrap; justify-content: flex-start; }
 .hero__ctas--center { margin-top: 4px; }
-.hero__stats { display: flex; gap: clamp(20px, 4vw, 44px); margin-top: 6px; flex-wrap: wrap; justify-content: center; }
+.hero__stats {
+  display: grid; grid-template-columns: repeat(2, auto);
+  gap: 16px clamp(24px, 3vw, 44px); margin-top: 2px; justify-content: flex-start;
+}
 .stat { text-align: center; }
 .stat__num { font-family: var(--font-display); font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
 .stat__label { font-size: 13px; color: var(--text-dim-4); font-weight: 500; margin-top: 2px; }
@@ -234,7 +393,22 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .partner-chip--duo .partner-chip__word span:first-child { text-shadow: -2px 0 0 rgba(37,244,238,0.85); }
 .partner-chip--duo .partner-chip__word span:last-child { text-shadow: 2px 0 0 rgba(254,44,85,0.85); }
 
-@media (max-height: 760px) {
+@media (max-width: 920px) {
+  .hero__inner {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 28px;
+  }
+  .hero__content {
+    text-align: center; align-items: center;
+    max-width: 640px; order: 2;
+  }
+  .hero__ctas, .hero__stats { justify-content: center; }
+  .hero__globe-col { order: 1; }
+  .hero-globe-wrap { width: clamp(260px, 62vw, 420px); }
+  .hero__vignette { display: none; }
+}
+@media (max-height: 760px) and (min-width: 921px) {
   .hero__stats { display: none; }
 }
 @media (max-width: 560px) {
@@ -250,15 +424,23 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   max-width: none; padding: 100px clamp(20px, 4vw, 48px);
   background: linear-gradient(180deg, #0E1B33 0%, #12244A 100%);
   border-radius: 40px; margin: 20px clamp(10px, 2vw, 20px);
-  /* No overflow:clip here on purpose — it would establish a scroll
+  /* No overflow:clip here on purpose, it would establish a scroll
      container and break position:sticky on .scroller__sticky inside the
      products section. Nothing here actually overflows this box (the
      decorative canvas is inset:0, same size as the section), so there's
      nothing to clip. */
 }
-.section--panel .section__inner { position: relative; max-width: 1180px; margin: 0 auto; }
+.section--panel .section__inner, .section--events .section__inner { position: relative; max-width: 1180px; margin: 0 auto; }
 #security.section--panel { background: var(--bg-card); border: 1px solid var(--border-soft); }
-.section--events { background: linear-gradient(180deg, #241922 0%, #0A1426 100%); border-radius: 40px 40px 0 0; margin: 20px clamp(10px, 2vw, 20px) 0; padding-bottom: 60px; }
+/* Full-bleed like the other panel sections instead of inheriting .section's
+   1280px cap, without this it visibly stopped growing past 1280px while
+   the Products/Security panels either side kept stretching to fill wide
+   viewports, so this chapter looked narrower/boxed-in on large screens. */
+.section--events {
+  max-width: none; padding: 100px clamp(20px, 4vw, 48px);
+  background: linear-gradient(180deg, #241922 0%, #0A1426 100%);
+  border-radius: 40px 40px 0 0; margin: 20px clamp(10px, 2vw, 20px) 0; padding-bottom: 60px;
+}
 
 .section__lines { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
 
@@ -288,6 +470,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .grid--3, .grid--5 { grid-template-columns: 1fr; }
   .section { padding: 72px 20px; }
   .section--panel { padding: 72px 18px; border-radius: 26px; margin: 14px 10px; }
+  .section--events { padding: 72px 18px 60px; border-radius: 26px 26px 0 0; margin: 14px 10px 0; }
 }
 
 /* ==========================================================================
@@ -303,7 +486,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   mix-blend-mode: screen; pointer-events: none;
 }
 /* Icon markup is generated inline per instance (see svgIcon() in main.js)
-   with fill/stroke colours baked in directly as attributes — Chrome does
+   with fill/stroke colours baked in directly as attributes, Chrome does
    not apply stylesheet rules into a <use>-cloned <symbol>'s children, so
    colour can't be assigned here via CSS classes. */
 .icon-tile svg { position: relative; z-index: 2; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35)); }
@@ -319,9 +502,15 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 /* ==========================================================================
    Orbit graphic (services + security)
    ========================================================================== */
-.orbit { position: relative; width: 340px; height: 340px; margin: 0 auto 52px; display: grid; place-items: center; transition: transform 0.18s ease-out; transform-style: preserve-3d; }
+.orbit { position: relative; width: 340px; height: 340px; margin: 0 auto 96px; display: grid; place-items: center; transition: transform 0.18s ease-out; transform-style: preserve-3d; }
 .orbit--shield { width: 380px; height: 380px; }
 .orbit__ring { position: absolute; border-radius: 50%; }
+/* inset: 30px is shared by both .orbit (340px) and .orbit--shield (380px),
+   giving outer ring radii of (340-2*30)/2 = 140px and (380-2*30)/2 = 160px
+   respectively. main.js hardcodes those same two radii for orbit-icon's
+   and orbit-badge's translateX, specifically so each badge/icon's center
+   sits exactly on its ring line rather than floating past it — keep all
+   four numbers in sync if either box size or this inset ever changes. */
 .orbit__ring--outer { inset: 30px; border: 1.5px dashed rgba(120,160,255,0.25); animation: spin 60s linear infinite; }
 .orbit__ring--rev { border-color: rgba(34,181,115,0.3); animation: spinrev 70s linear infinite; }
 .orbit__ring--inner { inset: 92px; border: 1px solid rgba(120,160,255,0.14); }
@@ -352,29 +541,47 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 @keyframes spinrev { from { transform: rotate(0); } to { transform: rotate(-360deg); } }
 @keyframes corepulse { 0%,100% { transform: scale(1); box-shadow: 0 14px 40px rgba(120,160,255,0.35); } 50% { transform: scale(1.06); box-shadow: 0 18px 54px rgba(120,160,255,0.5); } }
 @keyframes scanline { 0% { top: 12%; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { top: 82%; opacity: 0; } }
-@keyframes blip { 0%,100% { opacity: 0.25; } 50% { opacity: 1; } }
 
 @media (max-width: 640px) {
   .orbit { display: none; }
 }
 
 /* ==========================================================================
-   Service cards (cursor-responsive)
+   Shared cursor tilt + glow (every card-style tile on the page)
    ========================================================================== */
-.card {
-  position: relative; background: var(--bg-card); border: 1px solid var(--border-soft);
-  border-radius: 24px; padding: 30px; cursor: pointer; overflow: clip;
+/* One interaction, applied via this class alongside whichever card type
+   owns the actual box styling (.card/.t-card/.event-card/.blog-post keep
+   their own background/border/padding/radius) — attached in main.js via
+   attachCardTilt() so services, security, testimonials, events, and blog
+   posts all get literally the same tilt-toward-cursor + following-glow
+   feel instead of each section growing its own slightly-different version.
+   --mx/--my are set by attachCardTilt()'s mousemove handler; the perspective
+   rotate is skipped under prefers-reduced-motion like every other motion
+   effect on the page, but the glow (a plain opacity fade, not motion)
+   still runs. Each card type's own :hover rule still owns its border-color/
+   box-shadow — only the shared tilt/glow mechanics live here, and only
+   here, so nothing fights over the `transition` shorthand between rules. */
+.tilt-glow {
+  position: relative; overflow: clip; cursor: pointer;
   transition: border-color 0.25s, box-shadow 0.25s, transform 0.12s ease-out;
   transform: perspective(900px) rotateX(0) rotateY(0);
 }
-.card::after {
+.tilt-glow::after {
   content: ''; position: absolute; inset: 0; z-index: 0; opacity: 0; pointer-events: none;
   background: radial-gradient(320px circle at var(--mx,50%) var(--my,50%), rgba(120,160,255,0.16), transparent 60%);
   transition: opacity 0.3s ease;
 }
-.card:hover::after { opacity: 1; }
+.tilt-glow:hover::after { opacity: 1; }
+.tilt-glow > * { position: relative; z-index: 1; }
+
+/* ==========================================================================
+   Service cards
+   ========================================================================== */
+.card {
+  background: var(--bg-card); border: 1px solid var(--border-soft);
+  border-radius: 24px; padding: 30px;
+}
 .card:hover { border-color: rgba(120,160,255,0.32); box-shadow: 0 24px 50px rgba(0,0,0,0.28); }
-.card > * { position: relative; z-index: 1; }
 .card .icon-tile { width: 54px; height: 54px; margin-bottom: 20px; }
 .card__title { font-family: var(--font-display); font-size: 21px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 8px; }
 .card__desc { font-size: 14.5px; color: var(--text-dim-3); line-height: 1.6; margin-bottom: 18px; }
@@ -384,7 +591,14 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    Products scrollytelling
    ========================================================================== */
 .scroller { position: relative; display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 48px; margin-top: 8px; }
-.scroller__sticky { position: sticky; top: calc(var(--nav-h) + 40px); align-self: start; height: fit-content; }
+/* top: 50% + translateY(-50%) (rather than a fixed top offset) is what
+   actually centers a sticky element vertically in the viewport while it's
+   stuck: sticky's `top` is measured against the viewport height, so 50%
+   is the point where the element's top edge would cross the viewport's
+   midline, and shifting it back up by half its own height lands its
+   center there instead of its top. A fixed nav-h-based offset (the
+   previous value) pins the top edge near the top of the screen instead. */
+.scroller__sticky { position: sticky; top: 39%; align-self: start; height: fit-content; -webkit-transform: translateY(-50%); -moz-transform: translateY(-50%); -ms-transform: translateY(-50%); -o-transform: translateY(-50%); }
 .scroller__stage {
   position: relative; width: 100%; max-width: 420px; aspect-ratio: 1 / 0.95; border-radius: 30px;
   background: var(--product-bg, linear-gradient(150deg, #3E7BDD, #163E8F));
@@ -396,20 +610,34 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 26% 20%, rgba(255,255,255,0.28), transparent 55%);
   mix-blend-mode: screen; pointer-events: none;
 }
-.scroller__tile { position: relative; z-index: 1; width: 132px; height: 132px; display: grid; place-items: center; }
-.scroller__tile svg { width: 68px; height: 68px; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.4)); }
+.scroller__stage::after {
+  content: ''; position: absolute; z-index: 0; inset: 10%; border: 1px solid rgba(255,255,255,0.16); border-radius: 50%; pointer-events: none;
+}
+.scroller__index {
+  position: absolute; z-index: 0; top: 22px; left: 26px; font-family: var(--font-display); font-weight: 800;
+  font-size: 72px; line-height: 1; letter-spacing: -0.03em; color: rgba(255,255,255,0.14); pointer-events: none;
+}
+.scroller__tile { position: relative; z-index: 1; width: 190px; height: 190px; display: grid; place-items: center; }
+.scroller__tile svg { width: 108px; height: 108px; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.4)); }
 .scroller__rail { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 10px; z-index: 2; }
 .scroller__rail .tick { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.28); transition: background 0.3s, transform 0.3s; }
 .scroller__rail .tick.is-active { background: #fff; transform: scale(1.3); }
-.scroller__label { position: relative; z-index: 1; font-family: var(--font-display); font-size: 19px; font-weight: 700; color: #fff; text-align: center; padding: 0 24px; }
+.scroller__label { position: relative; z-index: 1; font-family: var(--font-display); font-size: 22px; font-weight: 700; color: #fff; text-align: center; padding: 0 24px; margin-top: 4px; }
 
 .scroller__steps { display: flex; flex-direction: column; }
-.step { min-height: 62vh; display: flex; flex-direction: column; justify-content: center; padding: 28px 0; opacity: 0.4; transition: opacity 0.4s ease; }
+/* min-height still needs to stay generous enough to give the
+   IntersectionObserver-driven active-step switching in main.js room to
+   trigger one step at a time as you scroll — shrunk from 62vh rather than
+   removed, since going much lower starts skipping steps on a fast scroll. */
+.step { min-height: 46vh; display: flex; flex-direction: column; justify-content: center; padding: 18px 0; opacity: 0.4; transition: opacity 0.4s ease; }
 .step.is-active { opacity: 1; }
 .step__index { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--text-dim-5); margin-bottom: 10px; }
 .step .icon-tile { width: 50px; height: 50px; margin-bottom: 18px; display: none; }
-.step__title { font-family: var(--font-display); font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 10px; }
-.step__desc { font-size: 15px; line-height: 1.65; color: var(--text-dim-2); max-width: 460px; margin-bottom: 16px; }
+.step__title { font-family: var(--font-display); font-size: 30px; font-weight: 700; color: #fff; margin-bottom: 12px; }
+.step__desc { font-size: 17px; line-height: 1.65; color: var(--text-dim-2); max-width: 460px; margin-bottom: 20px; }
+.step__stats { display: flex; gap: 32px; margin-bottom: 22px; }
+.step__stats .stat { text-align: left; }
+.step__stats .stat__num { font-size: 26px; }
 .step__link { font-size: 13.5px; font-weight: 700; }
 
 @media (max-width: 900px) {
@@ -466,8 +694,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    box, and CSS offset-path can't scale itself the way the sibling <svg>'s
    viewBox does. Shrinking .flight via width/vw would leave the plane
    flying its full-size path outside the now-smaller box (and overflowing
-   the viewport on phones). `zoom` scales the whole box — SVG, plane, and
-   its offset-path — together, so the flight stays on-path at every size. */
+   the viewport on phones). `zoom` scales the whole box, SVG, plane, and
+   its offset-path, together, so the flight stays on-path at every size. */
 .flight { position: relative; width: 620px; height: 130px; margin: -10px auto 46px; }
 @media (max-width: 900px) { .flight { zoom: 0.75; } }
 @media (max-width: 640px) { .flight { zoom: 0.55; } }
@@ -484,7 +712,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .flight.is-fast .flight__plane { animation-duration: 2.6s; }
 @keyframes planefly { 0% { offset-distance: 0%; } 100% { offset-distance: 100%; } }
 
-.event-card { background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 20px; padding: 22px; cursor: pointer; display: flex; flex-direction: column; gap: 10px; transition: box-shadow 0.25s, border-color 0.25s; }
+.event-card { background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 10px; }
 .event-card:hover { box-shadow: 0 16px 36px rgba(0,0,0,0.28); border-color: rgba(255,107,74,0.35); }
 .event-card__date { font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .event-card__name { font-family: var(--font-display); font-size: 18px; font-weight: 700; line-height: 1.25; flex: 1; }
@@ -495,7 +723,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .split { display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px; align-items: stretch; margin-top: 70px; }
 .blog { display: flex; flex-direction: column; gap: 18px; }
 .blog__title { font-family: var(--font-display); font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
-.blog-post { display: flex; gap: 16px; align-items: center; background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 20px; padding: 18px 22px; color: var(--text); margin-bottom: 12px; transition: box-shadow 0.25s; }
+.blog-post { display: flex; gap: 16px; align-items: center; background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 20px; padding: 18px 22px; color: var(--text); margin-bottom: 12px; }
 .blog-post:hover { box-shadow: 0 14px 34px rgba(0,0,0,0.25); color: var(--text); }
 .blog-post .icon-tile { width: 44px; height: 44px; flex-shrink: 0; }
 .blog-post .icon-tile svg { width: 20px; height: 20px; }

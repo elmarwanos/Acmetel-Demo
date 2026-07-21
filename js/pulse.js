@@ -1,4 +1,4 @@
-/* Acmetel "live network heartbeat" strip — canvas ECG-style pulse line. */
+/* Acmetel "live network heartbeat" strip, canvas ECG-style pulse line. */
 (function () {
   'use strict';
 

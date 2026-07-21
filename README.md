@@ -1,7 +1,7 @@
-# Acmetel — Homepage (Option B, "Momentum" dark)
+# Acmetel: Homepage (Option B, "Momentum" dark)
 
 Static, dependency-free rebuild of the approved dark homepage design, updated for the
-client's Option B feedback (2026-07-16). Plain HTML/CSS/JS — no build step, no framework —
+client's Option B feedback (2026-07-16). Plain HTML/CSS/JS, no build step and no framework,
 so it can be pushed straight to GitHub Pages.
 
 ## Structure
@@ -10,10 +10,10 @@ so it can be pushed straight to GitHub Pages.
 website code/
 ├── index.html          # single-page homepage
 ├── css/styles.css       # all styling (design tokens at the top)
-├── js/globe.js          # hero globe canvas renderer
 ├── js/pulse.js           # "Why Acmetel" heartbeat canvas
 ├── js/main.js            # nav, data-driven sections, interactions, reveal-on-scroll
 ├── assets/favicon.svg
+├── assets/globe.jpg      # hero globe texture
 └── README.md
 ```
 
@@ -21,13 +21,14 @@ website code/
 
 - **Partner carousel moved into the hero**, visible on first load, full-colour wordmarks
   (was a separate greyscale strip further down the page).
-- **Hero globe rebuilt** for higher fidelity: smoothed coastlines, terrain shading,
-  brighter ocean/atmosphere glow, glowing gradient carrier-route arcs, pulsing hub markers.
+- **Hero globe replaced** with a lit, rotating satellite-texture sphere (client-supplied
+  reference), ported from a React/Tailwind component to plain CSS so it fits this
+  project's stack: no build step required.
 - **Services cards** now tilt/glow/lift toward the cursor, with new dimensional
   gradient-lit icons (replacing the flat line icons and emoji).
-- **Products section** rebuilt as a scroll/cursor-driven layout (sticky visual panel +
+- **Products section** rebuilt as a scroll/cursor-driven layout (sticky visual panel,
   progress rail that advances as you scroll, subtle cursor parallax) instead of a static grid.
-- **New testimonials section** — sample/placeholder quotes; swap in real client
+- **New testimonials section**: sample/placeholder quotes, swap in real client
   testimonials before launch.
 - Removed the floating pill/badge above the hero headline and all emoji-as-icon usage
   sitewide, replaced with a custom SVG icon set.
@@ -47,13 +48,13 @@ to how GitHub Pages will actually serve it.)
 ## Deploying to GitHub Pages
 
 1. Create a new GitHub repo (or use an existing one) and push this `website code/`
-   folder's contents to it — the repo root should contain `index.html` directly
+   folder's contents to it. The repo root should contain `index.html` directly
    (not nested inside another folder), e.g.:
    ```bash
    cd "website code"
    git init
    git add .
-   git commit -m "Acmetel homepage — Option B dark, client feedback round"
+   git commit -m "Acmetel homepage: Option B dark, client feedback round"
    git branch -M main
    git remote add origin <your-repo-url>
    git push -u origin main
@@ -68,10 +69,14 @@ to how GitHub Pages will actually serve it.)
 
 ## Notes / things to swap before a real launch
 
-- Contact form is a front-end-only demo (no backend wired up) — it shows a success
+- Contact form is a front-end-only demo (no backend wired up). It shows a success
   state locally but doesn't send anywhere yet.
-- Testimonial quotes are placeholder copy — replace with real, attributed client quotes.
+- Testimonial quotes are placeholder copy, replace with real, attributed client quotes.
 - Partner strip renders brand-coloured wordmarks (no real logo assets were available in
-  the export) — swap in actual partner SVG logos when you have them for full accuracy.
+  the export). Swap in actual partner SVG logos when you have them for full accuracy.
+- `assets/globe.jpg` is a third-party demo texture pulled in from the reference component
+  you shared, kept only for this build. Before real launch, replace it with a properly
+  licensed (or Acmetel-owned) Earth texture, matched to the pan distance in
+  `css/styles.css` (search "earthRotate") if the new image's dimensions differ.
 - Blog/events/careers content is static placeholder text matching the original design's
-  copy — the full CMS-driven build is out of scope for this static homepage demo.
+  copy. The full CMS-driven build is out of scope for this static homepage demo.

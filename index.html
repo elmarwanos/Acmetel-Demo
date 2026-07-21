@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Acmetel — Empowering Seamless Communication</title>
-<meta name="description" content="Acmetel powers telecom operators and businesses with high-quality voice, messaging, cloud, and connectivity solutions — trusted for 16 years across three continents.">
-<meta property="og:title" content="Acmetel — Empowering Seamless Communication">
-<meta property="og:description" content="Voice, messaging, cloud, and connectivity solutions for telecom operators and businesses — trusted for 16 years across three continents.">
+<title>Acmetel: Empowering Seamless Communication</title>
+<meta name="description" content="Acmetel powers telecom operators and businesses with high-quality voice, messaging, cloud, and connectivity solutions, trusted for 16 years across three continents.">
+<meta property="og:title" content="Acmetel: Empowering Seamless Communication">
+<meta property="og:description" content="Voice, messaging, cloud, and connectivity solutions for telecom operators and businesses, trusted for 16 years across three continents.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#0A1426">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
@@ -56,7 +56,6 @@
 
   <symbol id="icon-menu" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   <symbol id="icon-close" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
-  <symbol id="icon-mark" viewBox="0 0 24 24"><path d="M12 3 L21 20 H16.5 L12 11 L7.5 20 H3 Z"/></symbol>
 </svg>
 
 <div class="page">
@@ -64,8 +63,7 @@
   <!-- ============ NAV ============ -->
   <nav class="nav" id="siteNav">
     <a href="#top" class="nav__brand">
-      <span class="nav__mark"><svg width="20" height="20"><use href="#icon-mark" fill="#fff"/></svg></span>
-      <span class="nav__word">acmetel<span class="dot">.</span></span>
+      <img class="nav__logo" src="assets/acmetel-logo.png" alt="Acmetel">
     </a>
     <div class="nav__links">
       <a href="#services">Services</a>
@@ -95,13 +93,13 @@
 
   <!-- ============ HERO ============ -->
   <header id="top" class="hero">
-    <div class="hero__bg"><canvas id="heroGlobe"></canvas></div>
+    <div class="hero__bg"><canvas id="heroParticles" class="hero__particles"></canvas></div>
     <div class="hero__vignette"></div>
 
     <div class="hero__inner">
       <div class="hero__content">
         <h1 class="hero__title">Empowering seamless<br><span class="grad-text">communication.</span></h1>
-        <p class="hero__sub">Acmetel powers telecom operators and businesses with high-quality voice, messaging, cloud, and connectivity solutions — trusted for 16 years across three continents.</p>
+        <p class="hero__sub">Acmetel powers telecom operators and businesses with high-quality voice, messaging, cloud, and connectivity solutions, trusted for 16 years across three continents.</p>
         <div class="hero__ctas">
           <a href="#services" class="btn btn--primary btn--lg">Explore our solutions</a>
           <a href="#contact" class="btn btn--outline btn--lg">Talk to our team</a>
@@ -111,6 +109,60 @@
           <div class="stat"><div class="stat__num" data-count="6" data-suffix="B+">0</div><div class="stat__label">Minutes terminated yearly</div></div>
           <div class="stat"><div class="stat__num" data-count="2" data-suffix="B+">0</div><div class="stat__label">Messages delivered</div></div>
           <div class="stat"><div class="stat__num" data-count="16" data-suffix=" yrs">0</div><div class="stat__label">Leading the industry</div></div>
+        </div>
+      </div>
+
+      <div class="hero__globe-col">
+        <div class="hero-globe-wrap" id="heroGlobeWrap">
+          <div class="hero-globe">
+            <!-- Link paths are generated in main.js from a data list (see
+                 globeLinkEdges) rather than hand-written here — with this
+                 many connections, a plain array of pairs is far easier to
+                 keep extending than duplicating markup per edge. -->
+            <svg class="globe-links" preserveAspectRatio="none"></svg>
+            <div class="globe-marker" data-id="fr" data-lat="48.9" data-lon="2.4">
+              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -0.0s;">
+            </div>
+            <div class="globe-marker" data-id="eg" data-lat="30.0" data-lon="31.2">
+              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -0.3s;">
+            </div>
+            <div class="globe-marker" data-id="jo" data-lat="31.9" data-lon="35.9">
+              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -0.6s;">
+            </div>
+            <div class="globe-marker" data-id="iq" data-lat="33.3" data-lon="44.4">
+              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -0.9s;">
+            </div>
+            <div class="globe-marker" data-id="sd" data-lat="15.5" data-lon="32.6">
+              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -1.2s;">
+            </div>
+            <div class="globe-marker" data-id="ss" data-lat="4.9" data-lon="31.6">
+              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -1.5s;">
+            </div>
+            <div class="globe-marker" data-id="ksa" data-lat="24.7" data-lon="46.7">
+              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -1.8s;">
+            </div>
+            <div class="globe-marker" data-id="kw" data-lat="29.4" data-lon="48.0">
+              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -2.1s;">
+            </div>
+            <div class="globe-marker" data-id="bh" data-lat="26.2" data-lon="50.6">
+              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -2.4s;">
+            </div>
+            <div class="globe-marker" data-id="uae" data-lat="24.0" data-lon="54.5">
+              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -2.7s;">
+            </div>
+            <div class="globe-marker" data-id="om" data-lat="23.6" data-lon="58.4">
+              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -3.0s;">
+            </div>
+            <div class="globe-marker" data-id="pk" data-lat="24.9" data-lon="67.0">
+              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -3.3s;">
+            </div>
+            <div class="globe-marker" data-id="in" data-lat="28.6" data-lon="77.2">
+              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -3.6s;">
+            </div>
+            <div class="globe-marker" data-id="us" data-lat="41.9" data-lon="-87.6">
+              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -3.9s;">
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -127,17 +179,17 @@
   <section id="services" class="section">
     <div class="section__head">
       <div>
-        <div class="eyebrow eyebrow--coral">Chapter 01 — What we do</div>
+        <div class="eyebrow eyebrow--coral">Chapter 01: What we do</div>
         <h2 class="h2">The primary services<br>we offer.</h2>
       </div>
-      <p class="section__lede">One partner for the entire stack — from the cable landing station to the last message delivered.</p>
+      <p class="section__lede">One partner for the entire stack, from the cable landing station to the last message delivered.</p>
     </div>
 
     <div class="orbit" id="servicesOrbit">
       <div class="orbit__ring orbit__ring--outer"></div>
       <div class="orbit__ring orbit__ring--inner"></div>
       <div class="orbit__core">
-        <svg width="40" height="40"><use href="#icon-mark" fill="#6FA0FF"/></svg>
+        <img src="assets/acmetel-logo-icon.png" alt="" width="40" height="40">
       </div>
       <div class="orbit__spin" id="orbitSpin"></div>
     </div>
@@ -152,7 +204,7 @@
     <canvas class="section__lines" id="whyLinesTop"></canvas>
     <div class="section__inner">
       <div class="section__head section__head--center">
-        <div class="eyebrow eyebrow--coral-soft">Chapter 02 — Products that protect &amp; connect</div>
+        <div class="eyebrow eyebrow--coral-soft">Chapter 02: Products that protect &amp; connect</div>
         <h2 class="h2 h2--onpanel">Our wide range of products.</h2>
         <p class="section__lede section__lede--center">Purpose-built platforms that safeguard operator revenue, verify every route, and keep travelers connected.</p>
       </div>
@@ -160,6 +212,7 @@
       <div class="scroller reveal" id="productsScroller" data-reveal="products">
         <div class="scroller__sticky">
           <div class="scroller__stage" id="productsStage">
+            <div class="scroller__index" id="productsIndex"></div>
             <div class="scroller__rail" id="productsRail"></div>
             <div class="scroller__tile" id="productsTile"></div>
           </div>
@@ -176,9 +229,9 @@
 
     <div class="why-grid reveal" data-reveal="why">
       <div>
-        <div class="eyebrow eyebrow--coral">Chapter 03 — Proven at scale</div>
+        <div class="eyebrow eyebrow--coral">Chapter 03: Proven at scale</div>
         <h2 class="h2">Sixteen years of keeping the world talking.</h2>
-        <p class="why-copy">A platform that encompasses business ideas: innovative technology, outstanding client service, and flexible pricing — with round-the-clock network operations that never compromise.</p>
+        <p class="why-copy">A platform that encompasses business ideas: innovative technology, outstanding client service, and flexible pricing, with round-the-clock network operations that never compromise.</p>
         <div class="why-points" id="whyPoints"></div>
       </div>
       <div class="big-stats" id="bigStats"></div>
@@ -188,7 +241,7 @@
   <!-- ============ TESTIMONIALS ============ -->
   <section id="testimonials" class="section">
     <div class="section__head section__head--center">
-      <div class="eyebrow eyebrow--coral">Chapter 04 — Trusted in the field</div>
+      <div class="eyebrow eyebrow--coral">Chapter 04: Trusted in the field</div>
       <h2 class="h2">What partners tell us.</h2>
       <p class="section__lede section__lede--center">Feedback from the operators, enterprises, and travelers who run on Acmetel every day.</p>
     </div>
@@ -199,9 +252,9 @@
   <section id="security" class="section section--panel">
     <div class="section__inner">
       <div class="section__head section__head--center">
-        <div class="eyebrow eyebrow--coral">Chapter 05 — Built on trust</div>
+        <div class="eyebrow eyebrow--coral">Chapter 05: Built on trust</div>
         <h2 class="h2">Protecting your data with<br>the highest standards.</h2>
-        <p class="section__lede section__lede--center">Carrier-grade security isn't a feature at Acmetel — it's the foundation every service is built on.</p>
+        <p class="section__lede section__lede--center">Carrier-grade security isn't a feature at Acmetel. It's the foundation every service is built on.</p>
       </div>
 
       <div class="orbit orbit--shield" id="securityOrbit">
@@ -226,7 +279,7 @@
   <section id="events" class="section section--events">
     <div class="section__inner">
       <div class="section__head section__head--center">
-        <div class="eyebrow eyebrow--coral">Chapter 06 — Meet us on the road</div>
+        <div class="eyebrow eyebrow--coral">Chapter 06: Meet us on the road</div>
         <h2 class="h2">Where the industry meets Acmetel.</h2>
       </div>
 
@@ -287,7 +340,6 @@
 
 </div>
 
-<script src="js/globe.js" defer></script>
 <script src="js/pulse.js" defer></script>
 <script src="js/main.js" defer></script>
 </body>
