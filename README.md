@@ -37,6 +37,19 @@ python3 -m http.server 8080
 # then open http://localhost:8080
 ```
 
+## Google Lighthouse speed test results
+<div style="display: flex; flex-direction: row;">
+  <div style="display: flex; flex-direction: column;">
+    <p>Desktop Test</p>
+    <img src="/assets/speedtest/acmetel-lighthouse-desktop.png" alt="Lighthouse Desktop Test" width=25%>
+  </div>
+  <div style="display: flex; flex-direction: column;">
+    <p>Mobile Test</p>
+    <img src="/assets/speedtest/acmetel-lighthouse-mobile.png" alt="Lighthouse Mobile Test" width=25%>
+  </div>
+</div>
+
+
 ## How the globe was built
 
 The rotating globe in the hero looks like a 3D render, but there is **no WebGL and no
