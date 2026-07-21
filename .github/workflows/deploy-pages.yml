@@ -1,0 +1,60 @@
+name: Deploy to GitHub Pages
+
+# Builds the site and deploys it to GitHub Pages. CSS/JS are minified during
+# the build only — the minified files live in the runner's checked-out copy
+# that gets published, and are never committed back, so styles.css / main.js /
+# pulse.js stay fully readable in the repo and index.html needs no changes.
+#
+# One-time setup (can't be done from here): in the repo on github.com go to
+# Settings -> Pages -> Build and deployment -> Source, and choose
+# "GitHub Actions". That switches Pages off the old "deploy from a branch"
+# mode so this workflow's output is what gets served.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # lets you run it manually from the Actions tab
+
+# Permissions the deploy-pages action needs to publish.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two Pages deploys run over each other; keep the latest.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      # Minifies every .html/.css/.js in place. "In place" here means only the
+      # runner's working copy (the thing uploaded below) — the repository is
+      # untouched, since nothing is committed back.
+      - name: Minify CSS & JS
+        uses: nizarmah/auto-minify@v3.0.0
+        with:
+          overwrite: true
+
+      # Bundles the whole site directory (index.html, css/, js/, assets/) as the
+      # Pages artifact. The site lives at the repo root, so the path is ".".
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
