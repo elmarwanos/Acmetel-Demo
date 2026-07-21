@@ -9,10 +9,36 @@
     this.mouseX = null;
     this.reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this._t0 = performance.now();
+    this._raf = 0;
+    this._onScreen = true;
     this._bind();
     this._tick = this._tick.bind(this);
-    this._raf = requestAnimationFrame(this._tick);
+    // Reduced-motion: draw one static frame, never animate.
+    if (this.reduced) { this._draw(0.5); return; }
+    // Otherwise only animate while the strip is on screen and the tab is
+    // focused — an off-screen heartbeat repainting every frame is pure waste.
+    this._gate();
+    this._sync();
   }
+
+  Pulse.prototype._gate = function () {
+    var self = this;
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) {
+        self._onScreen = entries[0].isIntersecting;
+        self._sync();
+      }, { threshold: 0 }).observe(this.canvas);
+    }
+    document.addEventListener('visibilitychange', function () { self._sync(); });
+  };
+  Pulse.prototype._sync = function () {
+    if (this._onScreen && !document.hidden) {
+      if (!this._raf) this._raf = requestAnimationFrame(this._tick);
+    } else if (this._raf) {
+      cancelAnimationFrame(this._raf);
+      this._raf = 0;
+    }
+  };
 
   Pulse.prototype._bind = function () {
     var self = this;
@@ -28,15 +54,15 @@
 
   Pulse.prototype.destroy = function () {
     cancelAnimationFrame(this._raf);
+    this._raf = 0;
     var host = this.opts.mouseTarget || this.canvas;
     host.removeEventListener('mousemove', this._onMove);
     host.removeEventListener('mouseleave', this._onLeave);
   };
 
   Pulse.prototype._tick = function (now) {
-    var t = this.reduced ? 0.5 : (now - this._t0) / 1000;
-    this._draw(t);
-    if (!this.reduced) this._raf = requestAnimationFrame(this._tick);
+    this._draw((now - this._t0) / 1000);
+    this._raf = requestAnimationFrame(this._tick);
   };
 
   function ecg(u) {

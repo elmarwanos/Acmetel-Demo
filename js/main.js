@@ -7,6 +7,50 @@
   };
 
   /* ========================================================================
+     Animation loop helpers
+
+     The page runs several perpetual canvas requestAnimationFrame loops (hero
+     particle field, globe spin, products wavy lines, and the ECG pulse in
+     pulse.js). Left alone they keep repainting every frame even while
+     scrolled far off-screen or while the browser tab is backgrounded — pure
+     wasted main-thread work that hurts scroll smoothness and battery for no
+     visible benefit.
+
+     makeLoop wraps a per-frame render(dt) with start()/stop(); gateLoop then
+     ties that start/stop to whether `host` is actually on-screen (via
+     IntersectionObserver) and the tab is visible (visibilitychange), so an
+     off-screen animation costs literally nothing until it scrolls back into
+     view. dt is clamped and the clock is reset on each resume, so the first
+     frame after a pause never applies one giant catch-up step.
+     ===================================================================== */
+  function makeLoop(render) {
+    var raf = 0, lastT = null;
+    function frame(t) {
+      if (lastT == null) lastT = t;
+      var dt = Math.min(100, t - lastT);
+      lastT = t;
+      render(dt);
+      raf = requestAnimationFrame(frame);
+    }
+    return {
+      start: function () { if (!raf) { lastT = null; raf = requestAnimationFrame(frame); } },
+      stop: function () { if (raf) { cancelAnimationFrame(raf); raf = 0; } }
+    };
+  }
+  function gateLoop(host, loop) {
+    var onScreen = true;
+    function sync() { (onScreen && !document.hidden) ? loop.start() : loop.stop(); }
+    if (host && 'IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) {
+        onScreen = entries[0].isIntersecting;
+        sync();
+      }, { threshold: 0 }).observe(host);
+    }
+    document.addEventListener('visibilitychange', sync);
+    sync();
+  }
+
+  /* ========================================================================
      Mobile nav
      ===================================================================== */
   (function nav() {
@@ -58,6 +102,7 @@
     var W = 0, H = 0;
     var particles = [];
     var LINK_DIST = 140;
+    var LINK_DIST2 = LINK_DIST * LINK_DIST;
 
     function resize() {
       var r = hero.getBoundingClientRect();
@@ -106,14 +151,19 @@
       ctx.clearRect(0, 0, W, H);
       ctx.lineWidth = 1;
       for (var a = 0; a < particles.length; a++) {
+        var pa = particles[a];
         for (var b = a + 1; b < particles.length; b++) {
-          var dx = particles[a].x - particles[b].x, dy = particles[a].y - particles[b].y;
-          var d = Math.sqrt(dx * dx + dy * dy);
-          if (d < LINK_DIST) {
+          var pb = particles[b];
+          var dx = pa.x - pb.x, dy = pa.y - pb.y;
+          var d2 = dx * dx + dy * dy;
+          // Compare squared distances so the many pairs that are out of link
+          // range never pay for a sqrt — only the few close enough to draw do.
+          if (d2 < LINK_DIST2) {
+            var d = Math.sqrt(d2);
             ctx.strokeStyle = 'rgba(111, 160, 255, ' + ((1 - d / LINK_DIST) * 0.35).toFixed(3) + ')';
             ctx.beginPath();
-            ctx.moveTo(particles[a].x, particles[a].y);
-            ctx.lineTo(particles[b].x, particles[b].y);
+            ctx.moveTo(pa.x, pa.y);
+            ctx.lineTo(pb.x, pb.y);
             ctx.stroke();
           }
         }
@@ -135,16 +185,10 @@
     draw(); // immediate first paint, before the rAF loop's first real tick
     if (reduced) { return; }
 
-    var lastT = null;
-    function frame(t) {
-      if (lastT == null) lastT = t;
-      var dt = Math.min(100, t - lastT);
-      lastT = t;
-      step(dt);
-      draw();
-      requestAnimationFrame(frame);
-    }
-    requestAnimationFrame(frame);
+    // Only animate while the hero is actually on screen (and the tab is
+    // focused) — once it scrolls away this loop, and its O(n^2) link pass,
+    // stop completely instead of churning behind the rest of the page.
+    gateLoop(hero, makeLoop(function (dt) { step(dt); draw(); }));
   })();
 
   /* ========================================================================
@@ -175,7 +219,7 @@
     var globe = document.querySelector('.hero-globe');
     if (!globe) return;
 
-    // globe.jpg is 4096x2048 (2:1, see IMAGE_ASPECT below); at "cover"
+    // globe texture is 2048x1024 (2:1, see IMAGE_ASPECT below); at "cover"
     // sizing one full seamless rotation loop pans through width*IMAGE_ASPECT
     // texture px — this is the reference ("s=1") scale every strip's own
     // scale is derived from. Recomputed on resize since .hero-globe-wrap is
@@ -193,11 +237,13 @@
     // of longitude split into STRIPS equal angular slices.
     var STRIPS = 24;
     var DA = Math.PI / STRIPS;
-    // globe.jpg is 4096x2048 (2:1) — used in tune() to derive each strip's
+    // globe texture is 2048x1024 (2:1) — used in tune() to derive each strip's
     // background-size height from its (aspect-agnostic, continuity-driven)
     // width, rather than pinning height to the box and letting width imply
-    // whatever aspect ratio the projection geometry happens to produce.
-    var IMAGE_ASPECT = 4096 / 2048;
+    // whatever aspect ratio the projection geometry happens to produce. Only
+    // the 2:1 ratio matters here, not the absolute px, so this stays correct
+    // regardless of what resolution globe.webp/.jpg is exported at.
+    var IMAGE_ASPECT = 2048 / 1024;
     var strips = []; // { el, aLo, aHi, a, left, width }
 
     function buildStrips() {
@@ -447,7 +493,6 @@
     var baseAngSpeed = -(2 * Math.PI) / 18000; // rad/ms, the default steady rightward spin
     var targetAngSpeed = baseAngSpeed;
     var currentAngSpeed = baseAngSpeed;
-    var lastT = null;
     var grabbed = false;
     var lastX = 0;
     var lastMoveT = 0;
@@ -496,19 +541,16 @@
       }, 150);
     });
 
-    function frame(t) {
-      if (lastT == null) lastT = t;
-      var dt = Math.min(100, t - lastT);
-      lastT = t;
-      if (!grabbed) {
-        currentAngSpeed += (targetAngSpeed - currentAngSpeed) * Math.min(1, dt / 600);
-        theta = ((theta + currentAngSpeed * dt) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
-        paintStrips();
-        updateMarkers();
-      }
-      requestAnimationFrame(frame);
-    }
-    requestAnimationFrame(frame);
+    // Spin only while the globe is on screen and the tab is focused. While
+    // grabbed, the drag handlers above already repaint directly on mousemove,
+    // so the idle loop just eases the throw back to the steady spin.
+    gateLoop(globe, makeLoop(function (dt) {
+      if (grabbed) return;
+      currentAngSpeed += (targetAngSpeed - currentAngSpeed) * Math.min(1, dt / 600);
+      theta = ((theta + currentAngSpeed * dt) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+      paintStrips();
+      updateMarkers();
+    }));
   })();
 
   (function countUp() {
@@ -622,18 +664,49 @@
   // owns the ::after glow layer/transform base) on each card element.
   function attachCardTilt(cards) {
     cards.forEach(function (card) {
+      // getBoundingClientRect() forces a synchronous layout; calling it on
+      // every mousemove (as this used to) thrashes layout for the whole
+      // duration of a hover. The card's box doesn't change between the moves
+      // of a single hover, so read it once on enter and reuse it per move.
+      var r = null;
+      card.addEventListener('mouseenter', function () { r = card.getBoundingClientRect(); });
       card.addEventListener('mousemove', function (e) {
-        var r = card.getBoundingClientRect();
-        var dx = (e.clientX - r.left) / r.width - 0.5;
-        var dy = (e.clientY - r.top) / r.height - 0.5;
-        card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
-        card.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
+        if (!r) r = card.getBoundingClientRect();
+        var mx = (e.clientX - r.left) / r.width;
+        var my = (e.clientY - r.top) / r.height;
+        card.style.setProperty('--mx', (mx * 100) + '%');
+        card.style.setProperty('--my', (my * 100) + '%');
         if (reduced) return;
+        var dx = mx - 0.5, dy = my - 0.5;
         card.style.transform = 'perspective(900px) rotateY(' + (dx * 10).toFixed(1) + 'deg) rotateX(' + (-dy * 10).toFixed(1) + 'deg) translateY(-4px) scale(1.012)';
       });
       card.addEventListener('mouseleave', function () {
+        r = null;
         card.style.transform = 'perspective(900px) rotateY(0deg) rotateX(0deg) translateY(0) scale(1)';
       });
+    });
+  }
+
+  // Same rect-caching idea for the big feature graphics that tilt toward the
+  // cursor (services orbit, security orbit, products stage). `evtHost` is
+  // where pointer events are listened (sometimes a larger hit area than the
+  // box being measured), `box` is what the cursor position is measured
+  // against, `target` is what receives the transform. Consolidates three
+  // near-identical mousemove/mouseleave blocks that previously each read the
+  // rect on every move.
+  function attachTilt(evtHost, box, target, persp, deg) {
+    if (!evtHost || !box || !target || reduced) return;
+    var r = null;
+    evtHost.addEventListener('mouseenter', function () { r = box.getBoundingClientRect(); });
+    evtHost.addEventListener('mousemove', function (e) {
+      if (!r) r = box.getBoundingClientRect();
+      var dx = (e.clientX - r.left) / r.width - 0.5;
+      var dy = (e.clientY - r.top) / r.height - 0.5;
+      target.style.transform = 'perspective(' + persp + 'px) rotateY(' + (dx * deg).toFixed(1) + 'deg) rotateX(' + (-dy * deg).toFixed(1) + 'deg)';
+    });
+    evtHost.addEventListener('mouseleave', function () {
+      r = null;
+      target.style.transform = 'perspective(' + persp + 'px) rotateY(0) rotateX(0)';
     });
   }
 
@@ -642,7 +715,7 @@
     if (!grid) return;
     grid.innerHTML = SERVICES.map(function (s) {
       return '<div class="card tilt-glow" tabindex="0">' +
-        iconTile(54, s.variant, s.id, s.grad) +
+        iconTile(54, s.variant, s.id) +
         '<div class="card__title">' + s.title + '</div>' +
         '<div class="card__desc">' + s.desc + '</div>' +
         '<span class="card__link">Learn more →</span></div>';
@@ -674,15 +747,7 @@
       }).join('');
     }
     var orbit = document.getElementById('servicesOrbit');
-    if (orbit && !reduced) {
-      orbit.addEventListener('mousemove', function (e) {
-        var r = orbit.getBoundingClientRect();
-        var dx = (e.clientX - r.left) / r.width - 0.5;
-        var dy = (e.clientY - r.top) / r.height - 0.5;
-        orbit.style.transform = 'perspective(900px) rotateY(' + (dx * 18).toFixed(1) + 'deg) rotateX(' + (-dy * 18).toFixed(1) + 'deg)';
-      });
-      orbit.addEventListener('mouseleave', function () { orbit.style.transform = 'perspective(900px) rotateY(0) rotateX(0)'; });
-    }
+    attachTilt(orbit, orbit, orbit, 900, 18);
   })();
 
   /* ========================================================================
@@ -714,7 +779,7 @@
       }).join('') + '</div>' : '';
       return '<div class="step" data-index="' + i + '">' +
         '<div class="step__index">0' + (i + 1) + ' / 0' + PRODUCTS.length + '</div>' +
-        iconTile(50, p.variant, p.id, p.grad) +
+        iconTile(50, p.variant, p.id) +
         '<div class="step__title">' + p.title + '</div>' +
         '<div class="step__desc">' + p.desc + '</div>' +
         stats +
@@ -751,15 +816,7 @@
       stepsHost.querySelectorAll('.step').forEach(function (s) { io.observe(s); });
     }
 
-    if (sticky && !reduced) {
-      sticky.addEventListener('mousemove', function (e) {
-        var r = stage.getBoundingClientRect();
-        var dx = (e.clientX - r.left) / r.width - 0.5;
-        var dy = (e.clientY - r.top) / r.height - 0.5;
-        stage.style.transform = 'perspective(1000px) rotateY(' + (dx * 8).toFixed(1) + 'deg) rotateX(' + (-dy * 8).toFixed(1) + 'deg)';
-      });
-      sticky.addEventListener('mouseleave', function () { stage.style.transform = 'perspective(1000px) rotateY(0) rotateX(0)'; });
-    }
+    attachTilt(sticky, stage, stage, 1000, 8);
   })();
 
   /* ========================================================================
@@ -769,7 +826,6 @@
     var cv = document.getElementById('whyLinesTop');
     if (!cv) return;
     var ctx = cv.getContext('2d');
-    var visible = false;
     var t0 = performance.now();
     function draw(t) {
       var w = cv.clientWidth, h = cv.clientHeight;
@@ -795,15 +851,11 @@
         ctx.stroke();
       }
     }
-    function loop(now) {
-      if (visible) draw((now - t0) / 1000);
-      if (!reduced) requestAnimationFrame(loop);
-    }
-    if ('IntersectionObserver' in window) {
-      new IntersectionObserver(function (entries) { visible = entries[0].isIntersecting; }, { threshold: 0.05 }).observe(cv);
-    } else { visible = true; }
-    requestAnimationFrame(loop);
-    if (reduced) draw(0.4);
+    // Under reduced-motion, paint one static frame and never loop; otherwise
+    // gate on the canvas being on screen so the loop fully stops (not just
+    // skips drawing) whenever the products panel isn't in view.
+    if (reduced) { draw(0.4); return; }
+    gateLoop(cv, makeLoop(function () { draw((performance.now() - t0) / 1000); }));
   })();
 
   /* ========================================================================
@@ -884,15 +936,7 @@
       }).join('');
     }
     var orbit = document.getElementById('securityOrbit');
-    if (orbit && !reduced) {
-      orbit.addEventListener('mousemove', function (e) {
-        var r = orbit.getBoundingClientRect();
-        var dx = (e.clientX - r.left) / r.width - 0.5;
-        var dy = (e.clientY - r.top) / r.height - 0.5;
-        orbit.style.transform = 'perspective(900px) rotateY(' + (dx * 16).toFixed(1) + 'deg) rotateX(' + (-dy * 16).toFixed(1) + 'deg)';
-      });
-      orbit.addEventListener('mouseleave', function () { orbit.style.transform = 'perspective(900px) rotateY(0) rotateX(0)'; });
-    }
+    attachTilt(orbit, orbit, orbit, 900, 16);
     var grid = document.getElementById('securityGrid');
     if (!grid) return;
     var cards = [
@@ -901,7 +945,7 @@
       { id: 'icon-shieldcheck', title: 'Security commitment', desc: 'A continuously hardened framework with enterprise-grade SSO, regular audits, and independent assessments, upholding the highest standards.', badges: ['SSO', 'Regular audits', '24/7 monitoring'] },
     ];
     grid.innerHTML = cards.map(function (c) {
-      return '<div class="card tilt-glow">' + iconTile(52, 'blue', c.id, 'g-blue') +
+      return '<div class="card tilt-glow">' + iconTile(52, 'blue', c.id) +
         '<div class="card__title">' + c.title + '</div>' +
         '<div class="card__desc">' + c.desc + '</div>' +
         '<div class="badge-row">' + c.badges.map(function (b) { return '<span class="badge">' + b + '</span>'; }).join('') + '</div></div>';
@@ -944,7 +988,7 @@
         { id: 'icon-shieldsearch', variant: 'green', grad: 'g-green', tag: 'Security', tagColor: '#1B9963', title: 'A comprehensive guide to AI scams: common tactics and preventive strategies' },
       ];
       blog.innerHTML = posts.map(function (p) {
-        return '<a href="#events" class="blog-post tilt-glow">' + iconTile(44, p.variant, p.id, p.grad) +
+        return '<a href="#events" class="blog-post tilt-glow">' + iconTile(44, p.variant, p.id) +
           '<div><div class="blog-post__tag" style="color:' + p.tagColor + '">' + p.tag + '</div>' +
           '<div class="blog-post__title">' + p.title + '</div></div></a>';
       }).join('');
