@@ -175,11 +175,12 @@
     var globe = document.querySelector('.hero-globe');
     if (!globe) return;
 
-    // globe.jpg is 500x313; at "cover" sizing one full seamless rotation
-    // loop pans through width * 500/313 texture px — this is the reference
-    // ("s=1") scale every strip's own scale is derived from. Recomputed on
-    // resize since .hero-globe-wrap is fluid (clamp()), so a single fixed
-    // pan distance can't stay correct at every size.
+    // globe.jpg is 4096x2048 (2:1, see IMAGE_ASPECT below); at "cover"
+    // sizing one full seamless rotation loop pans through width*IMAGE_ASPECT
+    // texture px — this is the reference ("s=1") scale every strip's own
+    // scale is derived from. Recomputed on resize since .hero-globe-wrap is
+    // fluid (clamp()), so a single fixed pan distance can't stay correct at
+    // every size.
     var pan = 990;
     var boxW = 0, boxH = 0, R = 0;
     var theta = 0; // rotation phase, radians
@@ -192,6 +193,11 @@
     // of longitude split into STRIPS equal angular slices.
     var STRIPS = 24;
     var DA = Math.PI / STRIPS;
+    // globe.jpg is 4096x2048 (2:1) — used in tune() to derive each strip's
+    // background-size height from its (aspect-agnostic, continuity-driven)
+    // width, rather than pinning height to the box and letting width imply
+    // whatever aspect ratio the projection geometry happens to produce.
+    var IMAGE_ASPECT = 4096 / 2048;
     var strips = []; // { el, aLo, aHi, a, left, width }
 
     function buildStrips() {
@@ -214,10 +220,33 @@
     function tune() {
       var r = globe.getBoundingClientRect();
       boxW = r.width; boxH = r.height; R = boxW / 2;
-      if (boxW) pan = boxW * 500 / 313;
+      if (boxW) pan = boxW * IMAGE_ASPECT;
       // Keeps the SVG's user-space units identical to the marker math's px,
       // so a link path can reuse a marker's bx/by with no unit conversion.
       if (linksSvg) linksSvg.setAttribute('viewBox', '0 0 ' + boxW + ' ' + boxH);
+
+      // bgHeight is pinned to boxH (100%) for every strip, full stop — not
+      // adjustable. Markers position themselves with `latFrac * boxH` (see
+      // updateMarkers() below), i.e. they assume the WHOLE image height
+      // maps to the WHOLE box height with no cropping; a background-size
+      // taller than boxH (an earlier version of this code tried exactly
+      // that, to fix the aspect ratio) crops off part of the actual
+      // latitude range, desyncing the visible texture from where markers
+      // land and from what boxH is even supposed to represent. So the
+      // aspect-ratio fix has to live entirely on the width axis instead —
+      // see bgWidth below for how that's done without breaking continuity.
+      //
+      // refBgWidth is what bgWidth should be for a strip centered exactly
+      // at a=0 (phi=0, dead center, zero foreshortening) for that strip's
+      // horizontal scale to equal boxH/nativeHeight — the same scale
+      // height is already using — which is the only way to guarantee no
+      // stretch specifically at the point directly facing the viewer.
+      var refBgWidth = boxH * IMAGE_ASPECT;
+      // contentFrac accumulates how far into one full 2*PI loop of texture
+      // each strip's LEFT edge sits, strip by strip, left to right — see
+      // the loop below for why this has to be a running sum rather than a
+      // formula evaluated independently per strip.
+      var contentFrac = 0;
 
       strips.forEach(function (s, i) {
         var aLo = -Math.PI / 2 + i * DA;
@@ -228,44 +257,76 @@
         s.a = a; s.aLo = aLo; s.aHi = aHi; s.left = xLo; s.width = width;
         s.el.style.left = xLo.toFixed(2) + 'px';
         s.el.style.width = width.toFixed(2) + 'px';
-        // Texture scale for this strip: its `width` screen-px must span exactly
-        // DA radians of longitude, so one full 2*PI loop spans width*2*PI/DA =
-        // width*2*STRIPS px. Deriving it from DA alone (not the strip's own
-        // projected width/scale) is what keeps neighbouring strips in a shared
-        // scale so their touching edges sample the same texture point — the
-        // continuity that removes the visible seams.
-        s.el.style.backgroundSize = (width * 2 * STRIPS).toFixed(2) + 'px 100%';
+        // bgWidth follows cos(a) — the same falloff shape width itself
+        // already has near the limb — scaled so it hits exactly refBgWidth
+        // at a=0. This is what actually fixes the aspect ratio (width no
+        // longer aspect-ratio-agnostic, unlike every earlier version of
+        // this formula); cos(a) never reaches exactly 0 for a real strip
+        // (the outermost strip's center sits at PI/2 - DA/2, not PI/2), so
+        // this doesn't need the same "clamped to at least 0.5" guard width
+        // does, but it's clamped anyway for safety against a future STRIPS
+        // change making DA large enough for that to matter.
+        var bgWidth = Math.max(1, refBgWidth * Math.cos(a));
+        // Continuity now can't be expressed as a fixed fraction-per-strip
+        // (DA/(2*PI)) the way it could when bgWidth was aspect-agnostic —
+        // cos(a) makes each strip's own content-fraction span
+        // (width/bgWidth) genuinely different from its neighbors', by
+        // design. So instead of computing each strip's position from its
+        // own angle independently, accumulate: this strip's content
+        // starts exactly where the previous one's ended, by construction,
+        // for every strip, at any zoom/box size — continuity is then true
+        // by definition rather than something that has to come out right
+        // from unrelated formulas agreeing.
+        s.bgWidth = bgWidth;
+        s.contentFracLo = contentFrac;
+        contentFrac += width / bgWidth;
+        s.el.style.backgroundSize = bgWidth.toFixed(2) + 'px 100%';
       });
     }
     tune();
 
-    // Where texture-longitude mu currently sits on screen, orthographically
-    // projected: mu's apparent angle relative to the camera is phi = mu -
-    // theta; front-facing (visible) when |phi| < 90°, screen-x = R(1+sin phi).
-    // Shared by both the strip paint step and the marker math below so the
-    // surface and the pins it carries move in lockstep.
+    // Where texture-longitude lonFrac currently sits on screen. This has to
+    // invert the SAME cos(a)-weighted mapping tune() builds each strip's
+    // bgWidth/contentFracLo from above — markers can't just use the plain
+    // orthographic mu-theta angle the way they could before that mapping
+    // existed, because the texture is no longer sampled linearly against
+    // screen angle (that's specifically what fixes the aspect ratio); using
+    // the old linear formula here would position markers correctly for a
+    // texture that isn't actually the one on screen, showing up as every
+    // marker sitting shifted from its real country.
+    //
+    // In the continuous limit, tune()'s per-strip content increment
+    // width_i/bgWidth_i = R*cos(a)*da / (refBgWidth*cos(a)) = (R/refBgWidth)*da
+    // — cos(a) cancels exactly — so the content-fraction shown at screen
+    // angle a is just linear in a: contentFrac(a) = (R/refBgWidth)*(a+PI/2).
+    // Solving that for a given a target content-fraction inverts cleanly
+    // with no trig needed. (This mapping only spans [0, PI/(2*IMAGE_ASPECT)]
+    // over the visible hemisphere rather than the "half the texture" a true
+    // linear-in-longitude mapping would — that's fine: it only needs to be
+    // the correct inverse of what's actually on screen, not a physically
+    // exact sphere unwrap.)
     function project(lonFrac) {
-      var mu = lonFrac * 2 * Math.PI;
-      var phi = mu - theta;
-      phi = ((phi + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
-      var visible = phi > -Math.PI / 2 && phi < Math.PI / 2;
+      var refBgWidth = boxH * IMAGE_ASPECT; // must match tune()'s refBgWidth exactly
+      var thetaFrac = theta / (2 * Math.PI);
+      var targetFrac = ((lonFrac - thetaFrac) % 1 + 1) % 1;
+      var fullFrontSpan = (Math.PI * R) / refBgWidth; // == PI/(2*IMAGE_ASPECT)
+      var visible = targetFrac >= 0 && targetFrac <= fullFrontSpan;
+      var phi = targetFrac * (refBgWidth / R) - Math.PI / 2;
       return { phi: phi, visible: visible, x: R * (1 + Math.sin(phi)) };
     }
 
     function paintStrips() {
+      // Rotation shifts every strip's content-fraction by the same amount:
+      // theta/(2*PI), i.e. a full 2*PI spin shifts by exactly 1.0 — one
+      // whole loop — which is what makes the wrap from theta=2*PI back to
+      // 0 seamless (the content-fraction lands back on the exact value it
+      // started at, mod 1). Wrapping into [0,1) here isn't required for
+      // correctness (background-position tiles regardless), just keeps
+      // the numbers bounded/readable.
+      var thetaFrac = theta / (2 * Math.PI);
       strips.forEach(function (s) {
-        // Anchor the texture to the true longitude at this strip's LEFT edge
-        // (muLo = aLo + theta) rather than its center. With the background-size
-        // set in tune(), position -width*muLo/DA places longitude muLo at local
-        // x=0 and longitude muLo+DA at local x=width. Strip i's right edge and
-        // strip i+1's left edge then resolve to the identical longitude, so the
-        // surface is continuous across every seam at any rotation — no per-strip
-        // slice offset to "flip" as it spins (the split-flap look the old
-        // center-anchored math produced). muLo is wrapped into [0,2*PI); the
-        // texture repeats, so a whole-loop shift of the offset is invisible.
-        var muLo = ((s.aLo + theta) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
-        var P = -(s.width / DA) * muLo;
-        s.el.style.backgroundPositionX = P.toFixed(2) + 'px';
+        var frac = ((s.contentFracLo + thetaFrac) % 1 + 1) % 1;
+        s.el.style.backgroundPositionX = (-frac * s.bgWidth).toFixed(2) + 'px';
       });
     }
     paintStrips();
@@ -717,12 +778,19 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
       var n = 6;
+      // Amplitudes scaled down to match .section__lines now being a
+      // compact fixed-height band (styles.css) instead of the whole
+      // (very tall) products panel. With h now only ~90-150px, 6 lines
+      // sit just 15-25px apart (h/n) — the original 24/26px wiggle (sized
+      // for spreading loosely across thousands of px) would swing each
+      // line across its neighbors' rows; kept small enough here to stay
+      // within that per-line spacing so they read as distinct rows.
       for (var i = 0; i < n; i++) {
-        var y0 = (h / n) * i + Math.sin(t * 0.4 + i) * 24;
+        var y0 = (h / n) * i + Math.sin(t * 0.4 + i) * 4;
         ctx.strokeStyle = 'rgba(255,255,255,0.05)';
         ctx.beginPath();
         for (var x = 0; x <= w; x += 24) {
-          var y = y0 + Math.sin(x * 0.008 + t * 0.5 + i * 1.7) * 26;
+          var y = y0 + Math.sin(x * 0.008 + t * 0.5 + i * 1.7) * 5;
           if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         }
         ctx.stroke();

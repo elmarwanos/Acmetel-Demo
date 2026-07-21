@@ -225,7 +225,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    background-size/position are given as single (non-comma) values, which
    CSS applies uniformly to every layer in background-image, so this dot
    layer and the photo layer stay perfectly registered and pan in lockstep
-   off the same --globe-pan/earthRotate animation used for the photo. */
+   — driven per-strip from main.js's heroGlobeSpin(), see the comment
+   above .hero-globe-strip below for how that's derived. */
 .hero-globe {
   position: relative;
   width: 100%;
@@ -233,8 +234,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   border-radius: 50%;
   overflow: hidden;
   box-shadow:
-    0 0 20vw rgba(255, 152, 78, 0.692), 0 0 30vw rgba(255, 208, 78, 0.692),
-    inset -18px -16px 50px rgba(3, 9, 24, 0.6);
+    0 0 30vw 2vw rgba(9, 101, 32, 0.692), 0 0 30vw 2vw rgba(7, 84, 70, 0.692),
+    inset -18px -16px 50px rgba(3, 20, 12, 0.6);
 }
 /* One angular slice of the sphere. Geometry (left/width) and the pan scale
    (background-size) are static per strip, recomputed on resize; only
@@ -245,9 +246,27 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    what actually encodes that strip's foreshortening. */
 .hero-globe-strip {
   position: absolute; top: 0; height: 100%; z-index: 0;
-  background-image:    radial-gradient(circle at 8% 34%, #ffe6b0 0 1.4px, rgba(255,230,176,0.35) 3px, transparent 4.5px),    radial-gradient(circle at 14% 28%, #ffe6b0 0 1px, rgba(255,230,176,0.3) 2.4px, transparent 4px),    radial-gradient(circle at 20% 40%, #ffe6b0 0 1.2px, rgba(255,230,176,0.3) 2.6px, transparent 4px),    radial-gradient(circle at 46% 21%, #ffe6b0 0 1.4px, rgba(255,230,176,0.35) 3px, transparent 4.5px),    radial-gradient(circle at 51% 26%, #ffe6b0 0 1px, rgba(255,230,176,0.3) 2.2px, transparent 3.6px),    radial-gradient(circle at 60% 41%, #ffd88f 0 1.5px, rgba(255,216,143,0.35) 3.2px, transparent 5px),    radial-gradient(circle at 65% 39%, #ffd88f 0 1px, rgba(255,216,143,0.3) 2.2px, transparent 3.6px),    radial-gradient(circle at 58% 37%, #ffd88f 0 1px, rgba(255,216,143,0.3) 2.2px, transparent 3.6px),    radial-gradient(circle at 49% 54%, #ffe6b0 0 1.2px, rgba(255,230,176,0.3) 2.6px, transparent 4px),    radial-gradient(circle at 58% 59%, #ffe6b0 0 1.2px, rgba(255,230,176,0.3) 2.6px, transparent 4px),    radial-gradient(circle at 69% 37%, #ffe6b0 0 1.2px, rgba(255,230,176,0.3) 2.6px, transparent 4px),    radial-gradient(circle at 79% 51%, #ffd88f 0 1.4px, rgba(255,216,143,0.35) 3px, transparent 4.5px),    radial-gradient(circle at 88% 29%, #ffe6b0 0 1px, rgba(255,230,176,0.3) 2.2px, transparent 3.6px),    radial-gradient(circle at 91% 77%, #ffe6b0 0 1px, rgba(255,230,176,0.3) 2.2px, transparent 3.6px),    url('../assets/globe.jpg');
+  /* First layer (painted on top, per the CSS background-layer stacking
+     order) is a flat Acmetel green blended with `color` — that blend mode
+     replaces hue+saturation with the top layer's while keeping the
+     backdrop's own luminance, so it recolors the whole composite below
+     (photo + city-light dots, already screen-blended together) from
+     globe.jpg's natural night-photo blue to on-brand green without
+     flattening out the light/dark detail that gives the sphere its shape.
+     Kept at low opacity (0.28, not the layer's own full-strength green) —
+     a full-strength recolor read as neon; this is meant to be just a
+     tinge over the photo's own color, not a replacement of it. */
+  background-image:    linear-gradient(rgba(34,181,115,0.28), rgba(34,181,115,0.28)),    radial-gradient(circle at 8% 34%, #ffe6b0 0 1.4px, rgba(255,230,176,0.35) 3px, transparent 4.5px),    radial-gradient(circle at 14% 28%, #ffe6b0 0 1px, rgba(255,230,176,0.3) 2.4px, transparent 4px),    radial-gradient(circle at 20% 40%, #ffe6b0 0 1.2px, rgba(255,230,176,0.3) 2.6px, transparent 4px),    radial-gradient(circle at 46% 21%, #ffe6b0 0 1.4px, rgba(255,230,176,0.35) 3px, transparent 4.5px),    radial-gradient(circle at 51% 26%, #ffe6b0 0 1px, rgba(255,230,176,0.3) 2.2px, transparent 3.6px),    radial-gradient(circle at 60% 41%, #ffd88f 0 1.5px, rgba(255,216,143,0.35) 3.2px, transparent 5px),    radial-gradient(circle at 65% 39%, #ffd88f 0 1px, rgba(255,216,143,0.3) 2.2px, transparent 3.6px),    radial-gradient(circle at 58% 37%, #ffd88f 0 1px, rgba(255,216,143,0.3) 2.2px, transparent 3.6px),    radial-gradient(circle at 49% 54%, #ffe6b0 0 1.2px, rgba(255,230,176,0.3) 2.6px, transparent 4px),    radial-gradient(circle at 58% 59%, #ffe6b0 0 1.2px, rgba(255,230,176,0.3) 2.6px, transparent 4px),    radial-gradient(circle at 69% 37%, #ffe6b0 0 1.2px, rgba(255,230,176,0.3) 2.6px, transparent 4px),    radial-gradient(circle at 79% 51%, #ffd88f 0 1.4px, rgba(255,216,143,0.35) 3px, transparent 4.5px),    radial-gradient(circle at 88% 29%, #ffe6b0 0 1px, rgba(255,230,176,0.3) 2.2px, transparent 3.6px),    radial-gradient(circle at 91% 77%, #ffe6b0 0 1px, rgba(255,230,176,0.3) 2.2px, transparent 3.6px),    url('../assets/globe.jpg');
   background-position: 0 0;
-  background-blend-mode: screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, normal;
+  background-blend-mode: color, screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, normal;
+  /* globe.jpg is a night-lights photo, naturally dark — brightened here
+     (not on .hero-globe itself) so it only lifts the texture layer,
+     leaving the rim-light/limb-darkening pseudo-elements below (already
+     tuned against the original brightness) untouched. contrast is pulled
+     below 1 (not boosted) specifically to keep the ocean/night areas from
+     crushing to pure black — a contrast boost pushes already-dark pixels
+     darker, which is the opposite of what's needed here. */
+  filter: brightness(1.6) contrast(0.92) saturate(0.95);
 }
 /* Rim light: centered outside the globe's own top-left corner rather than
    on its face, so the visible piece is only the crescent where this circle
@@ -277,8 +296,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   position: absolute; inset: 0; pointer-events: none;
   background: radial-gradient(circle at 50% 50%,
     transparent 58%,
-    rgba(3, 9, 20, 0.2) 83%,
-    rgba(3, 9, 20, 0.46) 100%);
+    rgba(3, 20, 12, 0.2) 83%,
+    rgba(3, 20, 12, 0.46) 100%);
   mix-blend-mode: multiply;
 }
 /* Globe markers: pinned to a real lat/long on the globe.jpg texture and
@@ -442,7 +461,20 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   border-radius: 40px 40px 0 0; margin: 20px clamp(10px, 2vw, 20px) 0; padding-bottom: 60px;
 }
 
-.section__lines { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+/* inset:0 previously stretched this across the WHOLE products panel,
+   which is very tall (the scrollytelling steps below the heading push it
+   to several thousand px) — main.js's 6 lines are spaced evenly across
+   whatever height the canvas reports, so at that height they ended up
+   spread far apart, reading as a few stray lines near the top rather than
+   a cohesive pattern. Constraining it to a fixed band instead — pushed
+   down past the heading, sized down — is what actually makes it read as
+   a divider between the heading area and the product steps below, rather
+   than a faint texture smeared across the entire (mostly empty, by
+   comparison) panel height. */
+.section__lines {
+  position: absolute; left: 0; right: 0; pointer-events: none; z-index: 0;
+  top: clamp(140px, 16vw, 220px); height: clamp(90px, 10vw, 150px);
+}
 
 .section__head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 48px; }
 .section__lede { font-size: 16px; color: var(--text-dim-3); max-width: 380px; line-height: 1.6; }
@@ -752,7 +784,22 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 /* ==========================================================================
    Footer
    ========================================================================== */
-.footer { padding: 28px clamp(20px, 4vw, 48px); display: flex; align-items: center; justify-content: space-between; color: var(--text-dim-5); font-size: 13.5px; flex-wrap: wrap; gap: 12px; }
-.footer__addr { text-align: center; }
-.footer__links { display: flex; gap: 22px; }
+/* Grid instead of flex + space-between specifically so the link "buttons"
+   can sit truly centered (grid-column 2, justify-self: center) regardless
+   of how wide the copyright/address text on either side is — space-between
+   only centers a middle item when its neighbors happen to be equal width,
+   which they aren't here. */
+.footer {
+  padding: 28px clamp(20px, 4vw, 48px);
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  color: var(--text-dim-5); font-size: 13.5px; gap: 12px 24px;
+}
+.footer > span:first-child { grid-column: 1; justify-self: start; }
+.footer__addr { grid-column: 3; justify-self: end; text-align: right; }
+.footer__links { grid-column: 2; justify-self: center; display: flex; gap: 22px; }
 .footer__links a { color: var(--text-dim-5); }
+@media (max-width: 640px) {
+  .footer { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .footer > span:first-child, .footer__addr, .footer__links { grid-column: 1; justify-self: center; }
+  .footer__addr { text-align: center; }
+}
