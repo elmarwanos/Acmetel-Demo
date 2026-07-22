@@ -818,9 +818,44 @@
       attachCardTilt(grid.querySelectorAll('.event-card'));
     }
     var flight = document.getElementById('flightPath');
-    if (flight) {
-      flight.addEventListener('mouseenter', function () { flight.classList.add('is-fast'); });
-      flight.addEventListener('mouseleave', function () { flight.classList.remove('is-fast'); });
+    var plane = document.getElementById('flightPlane');
+    if (flight && plane) {
+      var hovering = false;
+      var hoverTime = 0;
+      var progress = 0;
+      var lastTime = performance.now();
+      var slowDuration = 7;
+      var pulsePeriod = 1.2;
+
+      function stepFlight(now) {
+        var delta = (now - lastTime) / 1000;
+        lastTime = now;
+
+        if (hovering) {
+          hoverTime += delta;
+        } else {
+          hoverTime = 0;
+        }
+
+        var pulse = 0.5 + 0.5 * Math.sin((hoverTime / pulsePeriod) * Math.PI * 2);
+        var speedMultiplier = 1 + Math.pow(1 + hoverTime * 0.7, 2.2) + (pulse * 0.12 * Math.pow(1 + hoverTime * 0.7, 0.8));
+        var duration = slowDuration / speedMultiplier;
+        progress = (progress + (delta / duration)) % 1;
+        plane.style.setProperty('--flight-distance', (progress * 100) + '%');
+        requestAnimationFrame(stepFlight);
+      }
+
+      flight.addEventListener('mouseenter', function () {
+        hovering = true;
+        hoverTime = 0;
+        flight.classList.add('is-fast');
+      });
+      flight.addEventListener('mouseleave', function () {
+        hovering = false;
+        flight.classList.remove('is-fast');
+      });
+
+      requestAnimationFrame(stepFlight);
     }
     var blog = document.getElementById('blogList');
     if (blog) {
