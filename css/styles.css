@@ -416,14 +416,36 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .grid--3 { grid-template-columns: repeat(3, 1fr); }
 .grid--5 { grid-template-columns: repeat(5, 1fr); }
 
-.reveal > * { opacity: 0; transform: translateY(36px); transition: opacity 0.65s var(--ease), transform 0.65s var(--ease); }
-.reveal.is-visible > * { opacity: 1; transform: translateY(0); }
-.reveal > *:nth-child(1) { transition-delay: 0s; }
-.reveal > *:nth-child(2) { transition-delay: 0.07s; }
-.reveal > *:nth-child(3) { transition-delay: 0.14s; }
-.reveal > *:nth-child(4) { transition-delay: 0.21s; }
-.reveal > *:nth-child(5) { transition-delay: 0.28s; }
-.reveal > *:nth-child(6) { transition-delay: 0.35s; }
+/* Reveal-on-scroll float-up. Driven by a keyframe ANIMATION (not a transition)
+   on purpose: the cards are also .tilt-glow, whose own `transform` + fast
+   `transition: transform 0.12s` for the cursor-tilt would otherwise both
+   override the reveal's translateY and snap it in 0.12s (the old "sudden
+   appear"). An animation lives on a separate channel from tilt-glow's
+   transition, so the float is smooth and the hover tilt stays snappy.
+   `backwards` fill holds the hidden start-state through each item's
+   stagger delay; nothing is left forwards-filled, so once the float finishes
+   the transform reverts to tilt-glow/JS and the cursor tilt works normally. */
+@keyframes revealUp {
+  from { opacity: 0; transform: translateY(34px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.reveal > * { opacity: 0; }
+.reveal.is-visible > * { opacity: 1; animation: revealUp 0.7s var(--ease) backwards; }
+.reveal.is-visible > *:nth-child(1) { animation-delay: 0.02s; }
+.reveal.is-visible > *:nth-child(2) { animation-delay: 0.09s; }
+.reveal.is-visible > *:nth-child(3) { animation-delay: 0.16s; }
+.reveal.is-visible > *:nth-child(4) { animation-delay: 0.23s; }
+.reveal.is-visible > *:nth-child(5) { animation-delay: 0.30s; }
+.reveal.is-visible > *:nth-child(6) { animation-delay: 0.37s; }
+
+/* Products scrollytelling: OPACITY-ONLY reveal. Its .scroller__sticky pins the
+   stage with transform: translateY(-50%); the transform-based revealUp
+   animation above would override that and break the sticky card. So cancel the
+   animation for this scroller and just fade its two columns in — which also
+   restores the original behaviour of holding the tall sticky stage hidden until
+   the section is in view (so it doesn't poke up and overlap the heading). */
+.scroller.reveal > * { transition: opacity 0.6s var(--ease); }
+.scroller.reveal.is-visible > * { animation: none; opacity: 1; }
 
 @media (max-width: 980px) {
   .grid--3 { grid-template-columns: repeat(2, 1fr); }
@@ -562,7 +584,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    midline, and shifting it back up by half its own height lands its
    center there instead of its top. A fixed nav-h-based offset (the
    previous value) pins the top edge near the top of the screen instead. */
-.scroller__sticky { position: sticky; top: 30%; align-self: start; height: fit-content; -webkit-transform: translateY(-50%); -moz-transform: translateY(-50%); -ms-transform: translateY(-50%); -o-transform: translateY(-50%); }
+.scroller__sticky { position: sticky; top: 30%; align-self: start; height: fit-content; }
 .scroller__stage {
   position: relative; width: 100%; max-width: 420px; aspect-ratio: 1 / 0.95; border-radius: 30px;
   background: var(--product-bg, linear-gradient(150deg, #17BFAB, #0B6E62));

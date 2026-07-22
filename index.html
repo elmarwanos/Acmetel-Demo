@@ -140,7 +140,7 @@
 
   <!-- ============ SERVICES ============ -->
   <section id="services" class="section">
-    <div class="section__head">
+    <div class="section__head reveal">
       <div>
         <div class="eyebrow eyebrow--coral">Chapter 01: What we do</div>
         <h2 class="h2">The primary services<br>we offer.</h2>
@@ -166,12 +166,17 @@
   <section id="products" class="section section--panel">
     <canvas class="section__lines" id="whyLinesTop"></canvas>
     <div class="section__inner">
-      <div class="section__head section__head--center">
+      <div class="section__head section__head--center reveal">
         <div class="eyebrow eyebrow--coral-soft">Chapter 02: Products that protect &amp; connect</div>
         <h2 class="h2 h2--onpanel">Our wide range of products.</h2>
         <p class="section__lede section__lede--center">Purpose-built platforms that safeguard operator revenue, verify every route, and keep travelers connected.</p>
       </div>
 
+      <!-- reveal-fade only (see .scroller.reveal in css): fades the two columns
+           in but does NOT run the transform-based revealUp animation, which
+           would override .scroller__sticky's translateY(-50%) and break the
+           sticky pin. The opacity gate also keeps the tall sticky stage hidden
+           until the section is scrolled in, so it never overlaps the heading. -->
       <div class="scroller reveal" id="productsScroller" data-reveal="products">
         <div class="scroller__sticky">
           <div class="scroller__stage" id="productsStage">
@@ -203,7 +208,7 @@
 
   <!-- ============ TESTIMONIALS ============ -->
   <section id="testimonials" class="section">
-    <div class="section__head section__head--center">
+    <div class="section__head section__head--center reveal">
       <div class="eyebrow eyebrow--coral">Chapter 04: Trusted in the field</div>
       <h2 class="h2">What partners tell us.</h2>
       <p class="section__lede section__lede--center">Feedback from the operators, enterprises, and travelers who run on Acmetel every day.</p>
@@ -214,7 +219,7 @@
   <!-- ============ SECURITY ============ -->
   <section id="security" class="section section--panel">
     <div class="section__inner">
-      <div class="section__head section__head--center">
+      <div class="section__head section__head--center reveal">
         <div class="eyebrow eyebrow--coral">Chapter 05: Built on trust</div>
         <h2 class="h2">Protecting your data with<br>the highest standards.</h2>
         <p class="section__lede section__lede--center">Carrier-grade security isn't a feature at Acmetel. It's the foundation every service is built on.</p>
@@ -241,7 +246,7 @@
   <!-- ============ EVENTS + BLOG + CONTACT ============ -->
   <section id="events" class="section section--events">
     <div class="section__inner">
-      <div class="section__head section__head--center">
+      <div class="section__head section__head--center reveal">
         <div class="eyebrow eyebrow--coral">Chapter 06: Meet us on the road</div>
         <h2 class="h2">Where the industry meets Acmetel.</h2>
       </div>
