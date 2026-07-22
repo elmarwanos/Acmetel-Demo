@@ -24,6 +24,7 @@
   <defs>
     <linearGradient id="g-blue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8FB5FF"/><stop offset="1" stop-color="#1B56E0"/></linearGradient>
     <linearGradient id="g-green" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8EE7C2"/><stop offset="1" stop-color="#0E8A56"/></linearGradient>
+    <linearGradient id="g-teal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5FE9D6"/><stop offset="1" stop-color="#0B7A6B"/></linearGradient>
     <linearGradient id="g-coral" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFB39E"/><stop offset="1" stop-color="#E24A28"/></linearGradient>
     <linearGradient id="g-purple" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C7B2FF"/><stop offset="1" stop-color="#6B3FCF"/></linearGradient>
     <linearGradient id="g-amber" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFD37A"/><stop offset="1" stop-color="#C77E00"/></linearGradient>
@@ -55,6 +56,8 @@
 
   <symbol id="icon-quote" viewBox="0 0 32 24"><path d="M4 24V15.5C4 8.5 8 4 14.5 2v4.5C10.8 8 9 10.6 9 14h5.5V24H4Zm14 0V15.5C18 8.5 22 4 28.5 2v4.5c-3.7 1.5-5.5 4.1-5.5 7.5h5.5V24H18Z"/></symbol>
 
+  <symbol id="icon-linkedin" viewBox="0 0 24 24"><path fill="currentColor" d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9h4v12H3V9Zm6 0h3.8v1.7h.05c.53-1 1.83-2.05 3.76-2.05C20.4 8.65 22 10.8 22 14.3V21h-4v-5.9c0-1.4-.03-3.2-1.95-3.2-1.95 0-2.25 1.52-2.25 3.1V21H9V9Z"/></symbol>
+  <symbol id="icon-instagram" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5" stroke="currentColor" stroke-width="1.9"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.9"/><circle cx="17.2" cy="6.8" r="1.2" fill="currentColor"/></symbol>
   <symbol id="icon-menu" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   <symbol id="icon-close" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
 </svg>
@@ -96,7 +99,6 @@
 
   <!-- ============ HERO ============ -->
   <header id="top" class="hero">
-    <div class="hero__bg"><canvas id="heroParticles" class="hero__particles"></canvas></div>
     <div class="hero__vignette"></div>
 
     <div class="hero__inner">
@@ -262,7 +264,7 @@
         <div class="orbit__ring orbit__ring--inner"></div>
         <div class="orbit__shield">
           <svg width="112" height="124" viewBox="0 0 120 132">
-            <defs><linearGradient id="acm-shg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1B56E0"/><stop offset="1" stop-color="#4F8CFF"/></linearGradient></defs>
+            <defs><linearGradient id="acm-shg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0B7A6B"/><stop offset="1" stop-color="#2DD4BF"/></linearGradient></defs>
             <path d="M60 4 L112 24 V64 C112 98 90 118 60 128 C30 118 8 98 8 64 V24 Z" fill="url(#acm-shg)"/>
             <path d="M42 64 L55 77 L80 50" stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -286,10 +288,10 @@
       <div class="flight" id="flightPath">
         <svg width="100%" height="100%" viewBox="0 0 620 130" fill="none" preserveAspectRatio="none">
           <path d="M14 100 C160 20, 320 120, 606 44" stroke="#4F8CFF" stroke-opacity="0.4" stroke-width="2" stroke-dasharray="7 9" class="flight__dash"/>
-          <circle cx="14" cy="100" r="5" fill="#FF6B4A"/>
+          <circle cx="14" cy="100" r="5" fill="#2DD4BF"/>
           <circle cx="180" cy="63" r="4" fill="#4F8CFF"/>
           <circle cx="400" cy="88" r="4" fill="#4F8CFF"/>
-          <circle cx="606" cy="44" r="5" fill="#FF6B4A"/>
+          <circle cx="606" cy="44" r="5" fill="#2DD4BF"/>
         </svg>
         <div class="flight__plane" id="flightPlane"><svg width="18" height="18"><use href="#icon-plane" stroke="#EAF0FA" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
@@ -332,9 +334,9 @@
     <span>© 2026 Acmetel. All rights reserved.</span>
     <span class="footer__addr">17W695C Butterfield Road, Oakbrook Terrace, IL 60181 USA</span>
     <div class="footer__links">
-      <a href="#">LinkedIn</a>
-      <a href="#">Instagram</a>
-      <a href="#">Privacy</a>
+      <a href="#" class="footer__social" aria-label="LinkedIn"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#icon-linkedin"/></svg></a>
+      <a href="#" class="footer__social" aria-label="Instagram"><svg width="18" height="18" viewBox="0 0 24 24"><use href="#icon-instagram"/></svg></a>
+      <a href="#" class="footer__privacy">Privacy</a>
     </div>
   </footer>
 

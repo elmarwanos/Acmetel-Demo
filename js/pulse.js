@@ -89,10 +89,13 @@
     for (var gx = 0; gx < w; gx += 40) { ctx.beginPath(); ctx.moveTo(gx, 10); ctx.lineTo(gx, h - 10); ctx.stroke(); }
 
     var xoff = t * 110;
+    // Gradient runs blue (UI base) into Acmetel teal at the leading edge,
+    // where the live pulse peak sits — per client, the heartbeat resolves to
+    // the brand teal rather than the old coral.
     var grad = ctx.createLinearGradient(0, 0, w, 0);
     grad.addColorStop(0, 'rgba(120,160,255,0.15)');
     grad.addColorStop(0.5, '#6FA0FF');
-    grad.addColorStop(1, '#FF6B4A');
+    grad.addColorStop(1, '#2DD4BF');
     var mpx = this.mouseX;
     var amp = function (x) { return 46 * (1 + (mpx != null ? 0.9 * Math.exp(-Math.pow((x - mpx) / 90, 2)) : 0)); };
     ctx.strokeStyle = grad;
@@ -107,9 +110,9 @@
 
     var peakX = w - 90;
     var pu = (((peakX + xoff) / 280) % 1 + 1) % 1;
-    ctx.fillStyle = '#FF6B4A';
+    ctx.fillStyle = '#2DD4BF';
     ctx.beginPath(); ctx.arc(peakX, cy - ecg(pu) * 46, 4, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(255,107,74,0.22)';
+    ctx.fillStyle = 'rgba(45,212,191,0.22)';
     ctx.beginPath(); ctx.arc(peakX, cy - ecg(pu) * 46, 10, 0, Math.PI * 2); ctx.fill();
   };
 

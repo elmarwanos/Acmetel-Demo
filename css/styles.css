@@ -27,6 +27,18 @@
   --green:     #22B573;
   --green-deep:#1B9963;
 
+  /* Acmetel teal, the single brand accent (sampled from the logo mark, which
+     runs pure teal #009C90 into a green #3CB484). This is now the only
+     highlight/accent color on the page; the navy background and blue
+     buttons/links remain the structural UI base. --teal-bright is for
+     highlight text and gradient ends, --teal for icon fills/mid tones,
+     --teal-deep for the dark end of icon-tile/stage gradients, and
+     --acc-teal-d for the darker two-tone icon detail strokes. */
+  --teal:        #14B8A6;
+  --teal-bright: #2DD4BF;
+  --teal-deep:   #0B6E62;
+  --acc-teal-d:  #0A5F55;
+
   --purple:    #7A4FD9;
   --amber:     #C77E00;
   --cyan:      #0E8DA3;
@@ -74,9 +86,9 @@ body {
 }
 img, svg { display: block; max-width: 100%; }
 a { color: var(--blue); text-decoration: none; }
-a:hover { color: var(--coral); }
+a:hover { color: var(--teal-bright); }
 button { font-family: inherit; }
-::selection { background: #6A3A2C; color: #fff; }
+::selection { background: #0B5E54; color: #fff; }
 /* NOTE: no overflow-x here, an overflow value on any ancestor of a
    position:sticky element (like .scroller__sticky in the products section)
    turns that ancestor into a scroll container and breaks sticky positioning.
@@ -99,7 +111,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    Type helpers
    ========================================================================== */
 .grad-text {
-  background: linear-gradient(92deg, #6FA0FF 20%, #FF8A6B 80%);
+  background: linear-gradient(92deg, #5FE9D6 15%, #12A594 85%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -108,8 +120,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
   margin-bottom: 12px;
 }
-.eyebrow--coral { color: var(--coral); }
-.eyebrow--coral-soft { color: #FFB39E; }
+/* Kept the --coral class names so the section markup didn't have to change,
+   but every eyebrow now paints in the single Acmetel teal accent. */
+.eyebrow--coral { color: var(--teal-bright); }
+.eyebrow--coral-soft { color: var(--teal-bright); }
 .h2 {
   font-family: var(--font-display);
   font-size: clamp(34px, 4.4vw, 54px);
@@ -132,14 +146,16 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .btn--lg { font-size: 16px; padding: 16px 30px; }
 .btn--sm { font-size: 14.5px; padding: 10px 20px; }
 .btn--block { width: 100%; padding: 15px; font-size: 15.5px; }
-.btn--primary { background: var(--blue-deep); color: #fff; box-shadow: 0 8px 22px rgba(79,140,255,0.28); }
-.btn--primary:hover { background: var(--blue-deeper); color: #fff; }
+/* Primary CTAs now use the Acmetel teal instead of blue (per client). A
+   mid-deep teal keeps white button text readable while staying vibrant. */
+.btn--primary { background: #0D9488; color: #fff; box-shadow: 0 8px 22px rgba(13,148,136,0.32); }
+.btn--primary:hover { background: #0B7A6B; color: #fff; }
 .btn--outline { background: var(--bg-card); color: var(--text); border: 1.5px solid var(--border-med); }
 .btn--outline:hover { border-color: var(--text); color: var(--text); }
 .btn--ghost-text { background: transparent; color: var(--text); padding: 10px 14px; font-size: 15px; }
 .btn--ghost-text:hover { color: var(--blue); }
-.hero__ctas .btn--primary { background: var(--coral); box-shadow: 0 10px 26px rgba(255,107,74,0.32); }
-.hero__ctas .btn--primary:hover { background: var(--coral-deep); }
+/* Hero CTAs used to override to coral; with coral removed they now fall
+   through to the standard blue --btn--primary styling. */
 
 /* ==========================================================================
    Nav
@@ -347,6 +363,12 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    fighting over the same property. Each marker's inline animation-delay
    staggers the bob out of phase with its neighbors for an organic feel
    rather than the whole cluster bobbing in lockstep. */
+/* Marker icons hidden per client request — the Acmetel logo pins on the
+   globe are turned off for now, but the whole marker system stays wired up:
+   main.js still positions every .globe-marker and still feeds the data-path
+   (.globe-link) endpoints from their lat/long, so the little data arcs keep
+   flying. To bring the pins back, just remove this one display:none. */
+.globe-marker__icon { display: none; }
 .globe-marker__icon {
   position: absolute; top: 50%; left: 50%;
   /* .globe-marker has no explicit size (its only child is this
@@ -424,23 +446,31 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .stat__num { font-family: var(--font-display); font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
 .stat__label { font-size: 13px; color: var(--text-dim-4); font-weight: 500; margin-top: 2px; }
 
-.hero__partners { position: relative; z-index: 2; padding: 20px 0 22px; border-top: 1px solid var(--border-soft); background: rgba(19,34,63,0.55); backdrop-filter: blur(6px); }
+/* No band background/border anymore — the partner pills hover directly over
+   the hero gradient (per client) instead of sitting on their own panel. */
+.hero__partners { position: relative; z-index: 2; padding: 20px 0 22px; }
 .hero__partners-label { text-align: center; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim-5); margin-bottom: 14px; }
 .marquee { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
 .marquee__track { display: flex; width: max-content; gap: 46px; align-items: center; animation: marquee 30s linear infinite; }
 .marquee:hover .marquee__track { animation-play-state: paused; }
 @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-/* Real partner logos (assets/partners/), not colored text chips. Each
-   sits on a small white pill so every logo's native colors read true
-   against this site's dark navy, matching how they'd actually appear on
-   a real "as seen in" press strip. Heights vary a lot between these
-   (some are wide wordmarks, some near-square marks), so each pill is
-   height-locked to a shared row height and left to size its own width
-   via object-fit — visually evens them out without forcing every logo
-   into an identical bounding box. */
-.partner-chip { display: flex; align-items: center; height: 34px; padding: 0 14px; background: #fff; border-radius: 8px; flex-shrink: 0; }
-.partner-chip__logo { height: 60%; width: auto; max-width: 108px; object-fit: contain; display: block; }
-.partner-chip__logo--dark { filter: brightness(0); }
+/* Partner names as plain teal wordmarks on a glassy pill (per client
+   request, reverted from the white photo-logo chips). Each pill is a
+   translucent teal-tinted glass panel — faint fill, hairline teal border,
+   backdrop blur — so the strip reads as a subtle on-brand "trusted by"
+   band rather than a row of hard white boxes. */
+.partner-chip {
+  display: flex; align-items: center; height: 38px; padding: 0 20px;
+  background: rgba(45, 212, 191, 0.06);
+  border: 1px solid rgba(45, 212, 191, 0.22);
+  border-radius: 999px; flex-shrink: 0;
+  color: var(--teal-bright);
+  font-family: var(--font-display);
+  font-size: 16px; font-weight: 600; letter-spacing: 0.01em; white-space: nowrap;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+.partner-chip:hover { background: rgba(45, 212, 191, 0.12); border-color: rgba(45, 212, 191, 0.4); }
 
 @media (max-width: 920px) {
   .hero__inner {
@@ -563,6 +593,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .icon-tile--amber  { background: linear-gradient(150deg, #F0AC3D, #A9660A); }
 .icon-tile--cyan   { background: linear-gradient(150deg, #38C7DE, #0C6B7A); }
 .icon-tile--white  { background: linear-gradient(150deg, #FF6B4A, #4F8CFF); }
+.icon-tile--teal   { background: linear-gradient(150deg, #17BFAB, #0B6E62); }
 
 /* ==========================================================================
    Orbit graphic (services + security)
@@ -577,7 +608,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    sits exactly on its ring line rather than floating past it — keep all
    four numbers in sync if either box size or this inset ever changes. */
 .orbit__ring--outer { inset: 30px; border: 1.5px dashed rgba(120,160,255,0.25); animation: spin 60s linear infinite; }
-.orbit__ring--rev { border-color: rgba(34,181,115,0.3); animation: spinrev 70s linear infinite; }
+.orbit__ring--rev { border-color: rgba(45,212,191,0.35); animation: spinrev 70s linear infinite; }
 .orbit__ring--inner { inset: 92px; border: 1px solid rgba(120,160,255,0.14); }
 .orbit__core {
   position: relative; z-index: 2; width: 88px; height: 88px; border-radius: 24px;
@@ -600,7 +631,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .orbit-icon__inner svg { width: 22px; height: 22px; }
 .orbit-badge { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
 .orbit-badge__counter { position: absolute; }
-.orbit-badge__inner { background: var(--bg-card); border: 1px solid var(--border-med); box-shadow: 0 8px 22px rgba(0,0,0,0.25); border-radius: 999px; padding: 9px 15px; font-size: 12.5px; font-weight: 800; color: var(--text); white-space: nowrap; animation: spinrev 40s linear infinite; }
+.orbit-badge__inner { background: var(--bg-card); border: 1px solid rgba(45,212,191,0.28); box-shadow: 0 8px 22px rgba(0,0,0,0.25); border-radius: 999px; padding: 9px 15px; font-size: 12.5px; font-weight: 800; color: var(--teal-bright); white-space: nowrap; animation: spinrev 40s linear infinite; }
 
 @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 @keyframes spinrev { from { transform: rotate(0); } to { transform: rotate(-360deg); } }
@@ -650,7 +681,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .card .icon-tile { width: 54px; height: 54px; margin-bottom: 20px; }
 .card__title { font-family: var(--font-display); font-size: 21px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 8px; }
 .card__desc { font-size: 14.5px; color: var(--text-dim-3); line-height: 1.6; margin-bottom: 18px; }
-.card__link { font-size: 14px; font-weight: 700; color: var(--blue); display: inline-flex; align-items: center; gap: 4px; }
+.card__link { font-size: 14px; font-weight: 700; color: var(--teal-bright); display: inline-flex; align-items: center; gap: 4px; }
 
 /* ==========================================================================
    Products scrollytelling
@@ -666,7 +697,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .scroller__sticky { position: sticky; top: 30%; align-self: start; height: fit-content; -webkit-transform: translateY(-50%); -moz-transform: translateY(-50%); -ms-transform: translateY(-50%); -o-transform: translateY(-50%); }
 .scroller__stage {
   position: relative; width: 100%; max-width: 420px; aspect-ratio: 1 / 0.95; border-radius: 30px;
-  background: var(--product-bg, linear-gradient(150deg, #3E7BDD, #163E8F));
+  background: var(--product-bg, linear-gradient(150deg, #17BFAB, #0B6E62));
   border: 1px solid rgba(255,255,255,0.14);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
   transition: background 0.5s ease; overflow: clip;
@@ -722,7 +753,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .why-copy { font-size: 16.5px; color: var(--text-dim-3); line-height: 1.65; margin: 20px 0 28px; }
 .why-points { display: flex; flex-direction: column; gap: 14px; }
 .why-point { display: flex; align-items: center; gap: 12px; font-size: 15.5px; font-weight: 500; color: var(--text-dim-1); }
-.why-point__check { width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; background: rgba(34,181,115,0.14); color: var(--green-deep); display: grid; place-items: center; font-size: 13px; font-weight: 800; }
+.why-point__check { width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; background: rgba(45,212,191,0.14); color: var(--teal-bright); display: grid; place-items: center; font-size: 13px; font-weight: 800; }
 .big-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .big-stat { border-radius: 22px; padding: 26px; border: 1px solid var(--border-soft); }
 .big-stat__num { font-family: var(--font-display); font-size: clamp(30px, 3.2vw, 42px); font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
@@ -748,7 +779,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    Security
    ========================================================================== */
 .badge-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.badge { font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--blue); background: rgba(120,160,255,0.08); border: 1px solid rgba(120,160,255,0.16); padding: 5px 11px; border-radius: 999px; }
+.badge { font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--teal-bright); background: rgba(45,212,191,0.08); border: 1px solid rgba(45,212,191,0.18); padding: 5px 11px; border-radius: 999px; }
 #security .card { background: var(--bg); }
 
 /* ==========================================================================
@@ -778,12 +809,27 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 @keyframes planefly { 0% { offset-distance: 0%; } 100% { offset-distance: 100%; } }
 
 .event-card { background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 10px; }
-.event-card:hover { box-shadow: 0 16px 36px rgba(0,0,0,0.28); border-color: rgba(255,107,74,0.35); }
+/* Photo bleeds to the card's edges (negative margins cancel the 22px pad);
+   .tilt-glow's overflow:clip + the card radius round its top corners. A
+   teal-tinted gradient scrim along the bottom keeps the date/name legible
+   over any photo and ties the images into the single-accent palette. */
+.event-card__img {
+  position: relative;
+  margin: -22px -22px 6px; width: calc(100% + 44px); max-width: none;
+  height: 130px; object-fit: cover; display: block;
+}
+.event-card__media { position: relative; margin: -22px -22px 6px; overflow: hidden; }
+.event-card__media .event-card__img { margin: 0; width: 100%; }
+.event-card__media::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(19,34,63,0) 45%, rgba(11,110,98,0.28) 100%);
+}
+.event-card:hover { box-shadow: 0 16px 36px rgba(0,0,0,0.28); border-color: rgba(45,212,191,0.4); }
 .event-card__date { font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 .event-card__name { font-family: var(--font-display); font-size: 18px; font-weight: 700; line-height: 1.25; flex: 1; }
 .event-card__place { font-size: 13px; color: var(--text-dim-4); display: flex; align-items: center; gap: 6px; }
 .event-card__place svg { width: 13px; height: 13px; color: var(--text-dim-5); }
-.event-card__cta { font-size: 13.5px; font-weight: 700; color: var(--blue); }
+.event-card__cta { font-size: 13.5px; font-weight: 700; color: var(--teal-bright); }
 
 .split { display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px; align-items: stretch; margin-top: 70px; }
 .blog { display: flex; flex-direction: column; gap: 18px; }
@@ -829,8 +875,17 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .footer > span:first-child { grid-column: 1; justify-self: start; }
 .footer__addr { grid-column: 3; justify-self: end; text-align: right; }
-.footer__links { grid-column: 2; justify-self: center; display: flex; gap: 22px; }
-.footer__links a { color: var(--text-dim-5); }
+.footer__links { grid-column: 2; justify-self: center; display: flex; align-items: center; gap: 18px; }
+.footer__links a { color: var(--text-dim-5); display: inline-flex; align-items: center; }
+/* Social links are now icon-only (LinkedIn, Instagram); each is a small
+   glassy circle that lights up teal on hover. Privacy stays a text link. */
+.footer__social {
+  width: 34px; height: 34px; justify-content: center; border-radius: 50%;
+  border: 1px solid var(--border-soft); background: rgba(255,255,255,0.03);
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.footer__social:hover { color: var(--teal-bright); border-color: rgba(45,212,191,0.5); background: rgba(45,212,191,0.08); }
+.footer__social svg { width: 18px; height: 18px; }
 @media (max-width: 640px) {
   .footer { grid-template-columns: 1fr; justify-items: center; text-align: center; }
   .footer > span:first-child, .footer__addr, .footer__links { grid-column: 1; justify-self: center; }

@@ -75,121 +75,10 @@
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
   })();
 
-  /* ========================================================================
-     Hero particle background: a lightweight "network constellation" canvas
-     — small dots, thin lines drawn between whichever pairs are currently
-     close together — sitting in .hero__bg (z-index: 0, already an empty
-     layer behind the vignette/content/globe). Plain canvas 2D rather than
-     a video: no asset to source/host, trivially themeable to match the
-     site's palette, and it composites under the globe/text for free since
-     those already sit in later, higher z-index layers.
-
-     Each particle orbits a slowly-drifting center rather than just moving
-     in a straight line — that's what gives the field its visible rotating
-     quality, on top of the slower overall wander. Both rates are in
-     units/ms (not units/frame) and every step is scaled by real elapsed
-     time, so the motion holds the same slow speed regardless of the
-     display's refresh rate. Because each particle's orbit has its own
-     random radius, angular speed and direction, neighboring pairs drift
-     in and out of link range on their own independent cycles — that's
-     what produces the connect/disconnect look, not anything scripted. */
-  (function heroParticles() {
-    var canvas = document.getElementById('heroParticles');
-    var hero = document.querySelector('.hero');
-    if (!canvas || !hero || !canvas.getContext) return;
-    var ctx = canvas.getContext('2d');
-    var dpr = Math.min(2, window.devicePixelRatio || 1);
-    var W = 0, H = 0;
-    var particles = [];
-    var LINK_DIST = 140;
-    var LINK_DIST2 = LINK_DIST * LINK_DIST;
-
-    function resize() {
-      var r = hero.getBoundingClientRect();
-      W = r.width; H = r.height;
-      canvas.width = Math.round(W * dpr);
-      canvas.height = Math.round(H * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      // Density scales with area but is capped so very large/ultrawide
-      // viewports don't quietly balloon into an O(n^2) line-check cost.
-      var count = Math.min(90, Math.round((W * H) / 14000));
-      particles = [];
-      for (var i = 0; i < count; i++) {
-        var cx = Math.random() * W, cy = Math.random() * H;
-        var orbitR = 10 + Math.random() * 30;
-        var angle = Math.random() * Math.PI * 2;
-        particles.push({
-          cx: cx, cy: cy,
-          // Center drift: a slow wander so the whole field never sits
-          // static, independent of each particle's own local orbit.
-          dcx: (Math.random() - 0.5) * 0.006, dcy: (Math.random() - 0.5) * 0.006,
-          orbitR: orbitR,
-          angle: angle,
-          // rad/ms, one revolution roughly every 20-45s; direction is
-          // per-particle so the field turns as a loose swirl, not a disc.
-          angSpeed: (Math.random() < 0.5 ? -1 : 1) * (Math.PI * 2 / (20000 + Math.random() * 25000)),
-          x: cx + orbitR * Math.cos(angle), y: cy + orbitR * Math.sin(angle),
-          r: 1 + Math.random() * 1.4
-        });
-      }
-    }
-    resize();
-
-    function step(dt) {
-      for (var i = 0; i < particles.length; i++) {
-        var p = particles[i];
-        p.cx += p.dcx * dt; p.cy += p.dcy * dt;
-        if (p.cx < -40) p.cx = W + 40; else if (p.cx > W + 40) p.cx = -40;
-        if (p.cy < -40) p.cy = H + 40; else if (p.cy > H + 40) p.cy = -40;
-        p.angle += p.angSpeed * dt;
-        p.x = p.cx + p.orbitR * Math.cos(p.angle);
-        p.y = p.cy + p.orbitR * Math.sin(p.angle);
-      }
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, W, H);
-      ctx.lineWidth = 1;
-      for (var a = 0; a < particles.length; a++) {
-        var pa = particles[a];
-        for (var b = a + 1; b < particles.length; b++) {
-          var pb = particles[b];
-          var dx = pa.x - pb.x, dy = pa.y - pb.y;
-          var d2 = dx * dx + dy * dy;
-          // Compare squared distances so the many pairs that are out of link
-          // range never pay for a sqrt — only the few close enough to draw do.
-          if (d2 < LINK_DIST2) {
-            var d = Math.sqrt(d2);
-            ctx.strokeStyle = 'rgba(111, 160, 255, ' + ((1 - d / LINK_DIST) * 0.35).toFixed(3) + ')';
-            ctx.beginPath();
-            ctx.moveTo(pa.x, pa.y);
-            ctx.lineTo(pb.x, pb.y);
-            ctx.stroke();
-          }
-        }
-      }
-      for (var i2 = 0; i2 < particles.length; i2++) {
-        ctx.beginPath();
-        ctx.arc(particles[i2].x, particles[i2].y, particles[i2].r, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(180, 210, 255, 0.75)';
-        ctx.fill();
-      }
-    }
-
-    var resizeTimer;
-    window.addEventListener('resize', function () {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(function () { resize(); draw(); }, 150);
-    });
-
-    draw(); // immediate first paint, before the rAF loop's first real tick
-    if (reduced) { return; }
-
-    // Only animate while the hero is actually on screen (and the tab is
-    // focused) — once it scrolls away this loop, and its O(n^2) link pass,
-    // stop completely instead of churning behind the rest of the page.
-    gateLoop(hero, makeLoop(function (dt) { step(dt); draw(); }));
-  })();
+  /* Hero floating-dots "network constellation" background was removed here
+     per client request — the hero now shows only its blueish-black gradient
+     behind the globe/content. The old #heroParticles canvas is gone from the
+     markup and its whole canvas system was deleted with it. */
 
   /* ========================================================================
      Hero globe: turntable-style spin control + stats count-up
@@ -652,22 +541,26 @@
       { name: 'e&', file: 'e-and.svg' },
     ];
     var loop = partners.concat(partners);
+    // Plain partner names as teal wordmarks on glassy pills (per client
+    // request, reverted from the white photo-logo chips). The `file` fields
+    // above are left in the data in case the image chips are ever restored.
     track.innerHTML = loop.map(function (p) {
-      return '<span class="partner-chip partner-chip--pill">' +
-        '<img class="partner-chip__logo' + (p.forceDark ? ' partner-chip__logo--dark' : '') + '" src="assets/partners/' + p.file + '" alt="' + p.name + '" loading="lazy"></span>';
+      return '<span class="partner-chip">' + p.name + '</span>';
     }).join('');
   })();
 
   /* ========================================================================
      Services, data, dimensional icons, cursor tilt/glow
      ===================================================================== */
+  // Every service icon uses the single Acmetel teal now (was a per-service
+  // rainbow of coral/purple/blue/green/amber/cyan) — one accent, per client.
   var SERVICES = [
-    { id: 'icon-voice', variant: 'coral', grad: 'g-coral', title: 'Voice', desc: 'Global voice termination with strong footholds in Pakistan and GCC destinations, now expanding across Africa, where growth potential is immense.' },
-    { id: 'icon-messaging', variant: 'purple', grad: 'g-purple', title: 'Messaging', desc: 'A2P messaging delivered in close partnership with EMEA mobile operators. Every message reaches its destination seamlessly.' },
-    { id: 'icon-cloud', variant: 'blue', grad: 'g-blue', title: 'Cloud Computing', desc: 'Acme CloudHub: public, private, hybrid and multi-cloud for government, enterprise, SME and startups. Secure, scalable, sovereign, and free from vendor lock-in.' },
-    { id: 'icon-connectivity', variant: 'green', grad: 'g-green', title: 'Connectivity', desc: "Acme ConnectHub: connectivity through Pakistan's first terrestrial cable landing station on the Pak-China Optical Fiber Cable. Faster, more reliable, sovereign." },
-    { id: 'icon-mnp', variant: 'amber', grad: 'g-amber', title: 'MNP Lookup', desc: 'Exclusive partner for the Pakistan MNP Database and MNP verification for international traffic, with unmatched accuracy and speed on porting status.' },
-    { id: 'icon-did', variant: 'cyan', grad: 'g-cyan', title: 'DID / Toll-free', desc: 'Direct Inward Dialing that connects numbers straight to your PBX: local, premium-rate, toll-free, and international toll-free.' },
+    { id: 'icon-voice', variant: 'teal', grad: 'g-teal', title: 'Voice', desc: 'Global voice termination with strong footholds in Pakistan and GCC destinations, now expanding across Africa, where growth potential is immense.' },
+    { id: 'icon-messaging', variant: 'teal', grad: 'g-teal', title: 'Messaging', desc: 'A2P messaging delivered in close partnership with EMEA mobile operators. Every message reaches its destination seamlessly.' },
+    { id: 'icon-cloud', variant: 'teal', grad: 'g-teal', title: 'Cloud Computing', desc: 'Acme CloudHub: public, private, hybrid and multi-cloud for government, enterprise, SME and startups. Secure, scalable, sovereign, and free from vendor lock-in.' },
+    { id: 'icon-connectivity', variant: 'teal', grad: 'g-teal', title: 'Connectivity', desc: "Acme ConnectHub: connectivity through Pakistan's first terrestrial cable landing station on the Pak-China Optical Fiber Cable. Faster, more reliable, sovereign." },
+    { id: 'icon-mnp', variant: 'teal', grad: 'g-teal', title: 'MNP Lookup', desc: 'Exclusive partner for the Pakistan MNP Database and MNP verification for international traffic, with unmatched accuracy and speed on porting status.' },
+    { id: 'icon-did', variant: 'teal', grad: 'g-teal', title: 'DID / Toll-free', desc: 'Direct Inward Dialing that connects numbers straight to your PBX: local, premium-rate, toll-free, and international toll-free.' },
   ];
 
   // Chrome does not apply stylesheet rules that target elements *inside* a
@@ -679,6 +572,7 @@
   var ACCENTS = {
     blue: '#133269', green: '#0A5A37', coral: '#A6371A',
     purple: '#402685', amber: '#8C5608', cyan: '#0A5866', white: '#163E8F',
+    teal: '#0A5F55',
   };
   function svgIcon(id, accent) {
     var W = '#fff';
@@ -805,14 +699,17 @@
   /* ========================================================================
      Products, scroll + cursor driven layout
      ===================================================================== */
+  // All products now share the single Acmetel teal stage/icon (was coral/
+  // blue/green/white per product) — "everything teal, not different colors".
+  var TEAL_STAGE_BG = 'linear-gradient(150deg,#17BFAB,#0B6E62)';
   var PRODUCTS = [
-    { id: 'icon-firewall', variant: 'coral', grad: 'g-coral', bg: 'linear-gradient(150deg,#FF7A57,#C6421F)', title: 'SMS Firewall', desc: 'Cutting-edge filtering that builds a robust blocking policy, safeguarding revenue and the customer experience.', cta: 'Learn more',
+    { id: 'icon-firewall', variant: 'teal', grad: 'g-teal', bg: TEAL_STAGE_BG, title: 'SMS Firewall', desc: 'Cutting-edge filtering that builds a robust blocking policy, safeguarding revenue and the customer experience.', cta: 'Learn more',
       stats: [{ num: '99.5%', label: 'Spam blocked' }, { num: '40%', label: 'Fraud loss cut' }] },
-    { id: 'icon-fraud', variant: 'blue', grad: 'g-blue', bg: 'linear-gradient(150deg,#3E7BDD,#163E8F)', title: 'Fraud Management', desc: 'State-of-the-art detection that manages and prevents fraudulent activity, a top concern for operators.', cta: 'Learn more',
+    { id: 'icon-fraud', variant: 'teal', grad: 'g-teal', bg: TEAL_STAGE_BG, title: 'Fraud Management', desc: 'State-of-the-art detection that manages and prevents fraudulent activity, a top concern for operators.', cta: 'Learn more',
       stats: [{ num: '24/7', label: 'Real-time monitoring' }, { num: '99.9%', label: 'Detection accuracy' }] },
-    { id: 'icon-probe', variant: 'green', grad: 'g-green', bg: 'linear-gradient(150deg,#1FB577,#0B6B41)', title: 'Probe Testing', desc: 'Active route testing that verifies quality end-to-end, keeping every destination honest.', cta: 'Learn more',
+    { id: 'icon-probe', variant: 'teal', grad: 'g-teal', bg: TEAL_STAGE_BG, title: 'Probe Testing', desc: 'Active route testing that verifies quality end-to-end, keeping every destination honest.', cta: 'Learn more',
       stats: [{ num: '150+', label: 'Routes tested daily' }, { num: '99.9%', label: 'ASR maintained' }] },
-    { id: 'icon-esim', variant: 'white', grad: 'g-white', bg: 'linear-gradient(150deg,#FF6B4A,#4F8CFF)', title: 'ACMeSIM', desc: 'Our consumer travel eSIM: 200+ destinations, plans from $0.99/GB. A smart eSIM for smart travel.', cta: 'Visit acmesim.global',
+    { id: 'icon-esim', variant: 'teal', grad: 'g-teal', bg: TEAL_STAGE_BG, title: 'ACMeSIM', desc: 'Our consumer travel eSIM: 200+ destinations, plans from $0.99/GB. A smart eSIM for smart travel.', cta: 'Visit acmesim.global',
       stats: [{ num: '200+', label: 'Countries covered' }, { num: '$0.99', label: 'Per GB from' }] },
   ];
 
@@ -835,7 +732,7 @@
         '<div class="step__title">' + p.title + '</div>' +
         '<div class="step__desc">' + p.desc + '</div>' +
         stats +
-        '<a href="#contact" class="step__link" style="color:' + (p.variant === 'white' ? '#FFD3C4' : '#8FB5FF') + '">' + p.cta + ' →</a></div>';
+        '<a href="#contact" class="step__link" style="color:#5FE9D6">' + p.cta + ' →</a></div>';
     }).join('');
 
     rail.innerHTML = PRODUCTS.map(function (_, i) { return '<button class="tick" type="button" aria-label="Go to product ' + (i + 1) + '" data-index="' + i + '"></button>'; }).join('');
@@ -929,10 +826,10 @@
     var stats = document.getElementById('bigStats');
     if (stats) {
       var data = [
-        { num: '100+', label: 'Partners worldwide', bg: 'var(--bg-card)', numColor: 'var(--blue)', labelColor: 'var(--text-dim-3)' },
+        { num: '100+', label: 'Partners worldwide', bg: 'var(--bg-card)', numColor: '#fff', labelColor: 'var(--text-dim-3)' },
         { num: '6B+', label: 'Minutes terminated every year', bg: 'var(--bg-deep)', numColor: '#fff', labelColor: 'var(--text-dim-2)' },
-        { num: '2B+', label: 'Messages delivered', bg: 'linear-gradient(135deg,#FF6B4A,#F05532)', numColor: '#fff', labelColor: 'rgba(255,255,255,0.85)' },
-        { num: '3', label: 'Continents of global presence', bg: 'var(--bg-card)', numColor: 'var(--coral)', labelColor: 'var(--text-dim-3)' },
+        { num: '2B+', label: 'Messages delivered', bg: 'linear-gradient(135deg,#17BFAB,#0B6E62)', numColor: '#fff', labelColor: 'rgba(255,255,255,0.9)' },
+        { num: '3', label: 'Continents of global presence', bg: 'var(--bg-card)', numColor: 'var(--teal-bright)', labelColor: 'var(--text-dim-3)' },
       ];
       stats.innerHTML = data.map(function (s) {
         return '<div class="big-stat" style="background:' + s.bg + '">' +
@@ -953,9 +850,9 @@
     var grid = document.getElementById('testimonialsGrid');
     if (!grid) return;
     var data = [
-      { quote: 'Acmetel’s NOC flagged a routing degradation on our GCC corridor before our own monitoring even caught it. That’s the kind of partner you want underneath a Tier-1 contract.', name: 'Faisal R.', role: 'Director of Carrier Relations, Regional Mobile Operator', metric: '99.9% ASR', initials: 'FR', color: '#1B56E0' },
-      { quote: 'We moved our A2P traffic to Acmetel mid-quarter and delivery rates across our EMEA routes improved within the first two weeks. No renegotiation drama, no downtime.', name: 'Priya N.', role: 'Head of Messaging Platform, E-commerce Enterprise', metric: '2-week cutover', initials: 'PN', color: '#7A4FD9' },
-      { quote: 'ACMeSIM is the first travel eSIM our support team didn’t have to build a playbook around. It activates and holds a connection, which is all we ever ask of it.', name: 'Daniel K.', role: 'Founder, Travel-Tech Startup', metric: '200+ countries', initials: 'DK', color: '#1B9963' },
+      { quote: 'Acmetel’s NOC flagged a routing degradation on our GCC corridor before our own monitoring even caught it. That’s the kind of partner you want underneath a Tier-1 contract.', name: 'Faisal R.', role: 'Director of Carrier Relations, Regional Mobile Operator', metric: '99.9% ASR', initials: 'FR', color: '#17BFAB' },
+      { quote: 'We moved our A2P traffic to Acmetel mid-quarter and delivery rates across our EMEA routes improved within the first two weeks. No renegotiation drama, no downtime.', name: 'Priya N.', role: 'Head of Messaging Platform, E-commerce Enterprise', metric: '2-week cutover', initials: 'PN', color: '#12A594' },
+      { quote: 'ACMeSIM is the first travel eSIM our support team didn’t have to build a playbook around. It activates and holds a connection, which is all we ever ask of it.', name: 'Daniel K.', role: 'Founder, Travel-Tech Startup', metric: '200+ countries', initials: 'DK', color: '#0E9E8C' },
     ];
     grid.innerHTML = data.map(function (t) {
       return '<div class="t-card tilt-glow">' +
@@ -997,7 +894,7 @@
       { id: 'icon-shieldcheck', title: 'Security commitment', desc: 'A continuously hardened framework with enterprise-grade SSO, regular audits, and independent assessments, upholding the highest standards.', badges: ['SSO', 'Regular audits', '24/7 monitoring'] },
     ];
     grid.innerHTML = cards.map(function (c) {
-      return '<div class="card tilt-glow">' + iconTile(52, 'blue', c.id) +
+      return '<div class="card tilt-glow">' + iconTile(52, 'teal', c.id) +
         '<div class="card__title">' + c.title + '</div>' +
         '<div class="card__desc">' + c.desc + '</div>' +
         '<div class="badge-row">' + c.badges.map(function (b) { return '<span class="badge">' + b + '</span>'; }).join('') + '</div></div>';
@@ -1011,16 +908,20 @@
   (function events() {
     var grid = document.getElementById('eventsGrid');
     if (grid) {
+      // Each event card now leads with a real conference/people photo
+      // (assets/events/), per client request. Date accents unified to the
+      // single Acmetel teal (was a per-card rainbow).
       var data = [
-        { name: 'ITW Africa', date: 'Sep 8–10, 2026', place: 'Nairobi', accent: '#FF6B4A' },
-        { name: 'WWC Madrid', date: 'Sep 16–18, 2026', place: 'Madrid', accent: '#6FA0FF' },
-        { name: 'Capacity Europe', date: 'Oct 13–15, 2026', place: 'London', accent: '#1B9963' },
-        { name: 'GCCM Middle East', date: 'Nov 1–4, 2026', place: 'Oman', accent: '#C77E00' },
-        { name: 'Africa Tech Festival', date: 'Nov 17–19, 2026', place: 'Cape Town', accent: '#7A4FD9' },
+        { name: 'ITW Africa', date: 'Sep 8–10, 2026', place: 'Nairobi', img: 'itw-africa.jpg' },
+        { name: 'WWC Madrid', date: 'Sep 16–18, 2026', place: 'Madrid', img: 'wwc-madrid.jpg' },
+        { name: 'Capacity Europe', date: 'Oct 13–15, 2026', place: 'London', img: 'capacity-europe.jpg' },
+        { name: 'GCCM Middle East', date: 'Nov 1–4, 2026', place: 'Oman', img: 'gccm-me.jpg' },
+        { name: 'Africa Tech Festival', date: 'Nov 17–19, 2026', place: 'Cape Town', img: 'africa-tech.jpg' },
       ];
       grid.innerHTML = data.map(function (e) {
         return '<div class="event-card tilt-glow">' +
-          '<div class="event-card__date" style="color:' + e.accent + '">' + e.date + '</div>' +
+          '<div class="event-card__media"><img class="event-card__img" src="assets/events/' + e.img + '" alt="Attendees at ' + e.name + '" loading="lazy"></div>' +
+          '<div class="event-card__date" style="color:#2DD4BF">' + e.date + '</div>' +
           '<div class="event-card__name">' + e.name + '</div>' +
           '<div class="event-card__place">' + icon('icon-pin', ' width="13" height="13" fill="currentColor"') + ' ' + e.place + '</div>' +
           '<span class="event-card__cta">Book now →</span></div>';
@@ -1035,9 +936,9 @@
     var blog = document.getElementById('blogList');
     if (blog) {
       var posts = [
-        { id: 'icon-suitcase', variant: 'coral', grad: 'g-coral', tag: 'Travel', tagColor: '#FF6B4A', title: 'How to avoid roaming charges abroad: the smart traveler’s guide for 2026' },
-        { id: 'icon-signal', variant: 'blue', grad: 'g-blue', tag: 'Technology', tagColor: '#6FA0FF', title: 'eSIM: the next step in mobile evolution, benefits and the future ahead' },
-        { id: 'icon-shieldsearch', variant: 'green', grad: 'g-green', tag: 'Security', tagColor: '#1B9963', title: 'A comprehensive guide to AI scams: common tactics and preventive strategies' },
+        { id: 'icon-suitcase', variant: 'teal', grad: 'g-teal', tag: 'Travel', tagColor: '#2DD4BF', title: 'How to avoid roaming charges abroad: the smart traveler’s guide for 2026' },
+        { id: 'icon-signal', variant: 'teal', grad: 'g-teal', tag: 'Technology', tagColor: '#2DD4BF', title: 'eSIM: the next step in mobile evolution, benefits and the future ahead' },
+        { id: 'icon-shieldsearch', variant: 'teal', grad: 'g-teal', tag: 'Security', tagColor: '#2DD4BF', title: 'A comprehensive guide to AI scams: common tactics and preventive strategies' },
       ];
       blog.innerHTML = posts.map(function (p) {
         return '<a href="#events" class="blog-post tilt-glow">' + iconTile(44, p.variant, p.id) +
