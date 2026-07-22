@@ -120,50 +120,11 @@
       <div class="hero__globe-col">
         <div class="hero-globe-wrap" id="heroGlobeWrap">
           <div class="hero-globe">
-            <!-- Link paths are generated in main.js from a data list (see globeLinkEdges) -->
-            <svg class="globe-links" preserveAspectRatio="none"></svg>
-            <div class="globe-marker" data-id="fr" data-lat="48.9" data-lon="2.4">
-              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -0.0s;">
-            </div>
-            <div class="globe-marker" data-id="eg" data-lat="30.0" data-lon="31.2">
-              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -0.3s;">
-            </div>
-            <div class="globe-marker" data-id="jo" data-lat="31.9" data-lon="35.9">
-              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -0.6s;">
-            </div>
-            <div class="globe-marker" data-id="iq" data-lat="33.3" data-lon="44.4">
-              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -0.9s;">
-            </div>
-            <div class="globe-marker" data-id="sd" data-lat="15.5" data-lon="32.6">
-              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -1.2s;">
-            </div>
-            <div class="globe-marker" data-id="ss" data-lat="4.9" data-lon="31.6">
-              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -1.5s;">
-            </div>
-            <div class="globe-marker" data-id="ksa" data-lat="24.7" data-lon="46.7">
-              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -1.8s;">
-            </div>
-            <div class="globe-marker" data-id="kw" data-lat="29.4" data-lon="48.0">
-              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -2.1s;">
-            </div>
-            <div class="globe-marker" data-id="bh" data-lat="26.2" data-lon="50.6">
-              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -2.4s;">
-            </div>
-            <div class="globe-marker" data-id="uae" data-lat="24.0" data-lon="54.5">
-              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -2.7s;">
-            </div>
-            <div class="globe-marker" data-id="om" data-lat="23.6" data-lon="58.4">
-              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -3.0s;">
-            </div>
-            <div class="globe-marker" data-id="pk" data-lat="24.9" data-lon="67.0">
-              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -3.3s;">
-            </div>
-            <div class="globe-marker" data-id="in" data-lat="28.6" data-lon="77.2">
-              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -3.6s;">
-            </div>
-            <div class="globe-marker" data-id="us" data-lat="41.9" data-lon="-87.6">
-              <img class="globe-marker__icon" src="assets/acmetel-logo-icon.png" alt="" style="animation-delay: -3.9s;">
-            </div>
+            <!-- Single-canvas globe: texture (tinted+lit once) + data-path arcs
+                 are drawn here by heroGlobeCanvas() in main.js. Replaces the old
+                 24 blended DOM strips + 62 SVG paths + 14 marker imgs, which
+                 froze low/mid devices. -->
+            <canvas class="hero-globe__canvas" id="heroGlobeCanvas"></canvas>
           </div>
         </div>
       </div>

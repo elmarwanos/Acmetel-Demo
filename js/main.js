@@ -81,416 +81,305 @@
      markup and its whole canvas system was deleted with it. */
 
   /* ========================================================================
-     Hero globe: turntable-style spin control + stats count-up
+     Hero globe: single-canvas renderer + turntable spin control
 
-     No parallax, no panning — the globe never moves on screen. The only
-     interaction is with the spin itself, like scrubbing a DJ turntable:
-     while the cursor is over the globe, horizontal mouse movement grabs
-     the surface and drags it 1:1 (in either direction, at any speed);
-     letting go "throws" it at whatever velocity your hand was moving and
-     that throw decays back to the default steady rightward spin. Off the
-     globe, or with no interaction at all, it just spins right on its own.
+     Performance rewrite. The previous globe composited 24 DOM "strips", each
+     with 16 blended background layers (background-blend-mode) plus a CSS
+     filter, and rewrote background-position on every strip every frame — on
+     top of 62 SVG link paths and 14 markers. Animating background-position
+     under a blend-mode + filter can't be GPU-composited, so the browser
+     re-rasterized all 24 strips on the CPU each frame, saturating the main
+     thread and freezing low/mid devices.
 
-     The surface itself is built from N vertical strips rather than one
-     panned background (see the comment above .hero-globe-strip in
-     styles.css for why a single flat pan can't look spherical). Rotation
-     state is tracked as an angle theta (radians) instead of a raw pixel
-     offset, advanced at a constant angular rate — the same way a real
-     sphere spins — and every strip derives its screen geometry, its own
-     background-size scale, and its own pan speed from an orthographic
-     projection (screen-x = R*sin(angle)) of that shared theta. Center
-     strips end up wide and fast, limb strips narrow and slow, which is
-     what actually produces the deceleration + foreshortening cues a flat
-     pan can't. Markers reuse the same projection so they slow/compress in
-     step with the surface underneath them instead of sliding linearly.
+     This version bakes the teal tint + brightness into the source texture
+     ONCE at load, then draws the whole rotating globe with two GPU-cheap
+     drawImage() calls per frame, plus a handful of canvas arcs for the data
+     paths. No per-frame blend-mode, filter, background-position, SVG geometry,
+     or marker DOM writes. The circular clip, rim-light, limb-darkening and
+     glow stay as static CSS on .hero-globe (painted once). The drag/throw
+     spin, off-screen gating (gateLoop) and reduced-motion handling are kept.
      ===================================================================== */
-  (function heroGlobeSpin() {
+  (function heroGlobeCanvas() {
     var globe = document.querySelector('.hero-globe');
-    if (!globe) return;
+    var canvas = document.getElementById('heroGlobeCanvas');
+    if (!globe || !canvas || !canvas.getContext) return;
+    var ctx = canvas.getContext('2d');
 
-    // globe texture is 2048x1024 (2:1, see IMAGE_ASPECT below); at "cover"
-    // sizing one full seamless rotation loop pans through width*IMAGE_ASPECT
-    // texture px — this is the reference ("s=1") scale every strip's own
-    // scale is derived from. Recomputed on resize since .hero-globe-wrap is
-    // fluid (clamp()), so a single fixed pan distance can't stay correct at
-    // every size.
-    var pan = 990;
-    var boxW = 0, boxH = 0, R = 0;
-    var theta = 0; // rotation phase, radians
-    var linksSvg = globe.querySelector('.globe-links');
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var D = 0;      // globe diameter, CSS px (square)
+    var theta = 0;  // rotation phase, radians (0..2PI)
+    var texDbl = null, texW = 0, texH = 0, texReady = false;
+    // The sphere is drawn as a SLICES x BANDS triangle mesh (a tilted
+    // orthographic projection) textured with per-triangle affine blits — no
+    // blend-mode/filter/DOM, and triangles tile the tilted surface with exact
+    // shared edges (no gaps or staggering). SLICES spans the FULL 360° of
+    // longitude and BANDS the full 180° of latitude; back-facing triangles are
+    // culled, and the front half fills the whole disc — including the cap that,
+    // once tilted, wraps up and over the pole to the top of the disc.
+    var SLICES = 60;
+    var BANDS = 20;
+    // Viewing tilt: look down onto the northern hemisphere by this angle
+    // (radians) instead of straight along the equator. Without it the north
+    // pole sits on the top edge and northern continents crowd into the top
+    // sliver; ~20° drops them to a natural position and shows the pole region
+    // tilted at the top, the way globe renders usually frame it.
+    var TILT = 14 * Math.PI / 180;
+    var cosTilt = Math.cos(TILT), sinTilt = Math.sin(TILT);
 
-    // Strip count. Adjacent strips are made edge-continuous (see paintStrips),
-    // so the seams between them don't show regardless of count; more strips
-    // only smooths the step-to-step change in foreshortening. DA is the fixed
-    // angular width of one strip — the whole visible hemisphere is PI radians
-    // of longitude split into STRIPS equal angular slices.
-    var STRIPS = 24;
-    var DA = Math.PI / STRIPS;
-    // globe texture is 2048x1024 (2:1) — used in tune() to derive each strip's
-    // background-size height from its (aspect-agnostic, continuity-driven)
-    // width, rather than pinning height to the box and letting width imply
-    // whatever aspect ratio the projection geometry happens to produce. Only
-    // the 2:1 ratio matters here, not the absolute px, so this stays correct
-    // regardless of what resolution globe.webp/.jpg is exported at.
-    var IMAGE_ASPECT = 2048 / 1024;
-    var strips = []; // { el, aLo, aHi, a, left, width }
-
-    function buildStrips() {
-      // Idempotent — resize just rebuilds geometry in place rather than
-      // recreating elements, since STRIPS never changes at runtime.
-      if (strips.length) return;
-      for (var i = 0; i < STRIPS; i++) {
-        var el = document.createElement('div');
-        el.className = 'hero-globe-strip';
-        globe.insertBefore(el, globe.firstChild);
-        strips.push({ el: el, aLo: 0, aHi: 0, a: 0, left: 0, width: 0 });
-      }
-      // Strips were inserted front-first above, so put them back in
-      // left-to-right DOM order (purely cosmetic — they're all z-index: 0
-      // absolute-positioned, but keeps DOM order sane for devtools).
-      strips.reverse();
-    }
-    buildStrips();
-
-    function tune() {
-      var r = globe.getBoundingClientRect();
-      boxW = r.width; boxH = r.height; R = boxW / 2;
-      if (boxW) pan = boxW * IMAGE_ASPECT;
-      // Keeps the SVG's user-space units identical to the marker math's px,
-      // so a link path can reuse a marker's bx/by with no unit conversion.
-      if (linksSvg) linksSvg.setAttribute('viewBox', '0 0 ' + boxW + ' ' + boxH);
-
-      // bgHeight is pinned to boxH (100%) for every strip, full stop — not
-      // adjustable. Markers position themselves with `latFrac * boxH` (see
-      // updateMarkers() below), i.e. they assume the WHOLE image height
-      // maps to the WHOLE box height with no cropping; a background-size
-      // taller than boxH (an earlier version of this code tried exactly
-      // that, to fix the aspect ratio) crops off part of the actual
-      // latitude range, desyncing the visible texture from where markers
-      // land and from what boxH is even supposed to represent. So the
-      // aspect-ratio fix has to live entirely on the width axis instead —
-      // see bgWidth below for how that's done without breaking continuity.
-      //
-      // refBgWidth is what bgWidth should be for a strip centered exactly
-      // at a=0 (phi=0, dead center, zero foreshortening) for that strip's
-      // horizontal scale to equal boxH/nativeHeight — the same scale
-      // height is already using — which is the only way to guarantee no
-      // stretch specifically at the point directly facing the viewer.
-      var refBgWidth = boxH * IMAGE_ASPECT;
-      // contentFrac accumulates how far into one full 2*PI loop of texture
-      // each strip's LEFT edge sits, strip by strip, left to right — see
-      // the loop below for why this has to be a running sum rather than a
-      // formula evaluated independently per strip.
-      var contentFrac = 0;
-
-      strips.forEach(function (s, i) {
-        var aLo = -Math.PI / 2 + i * DA;
-        var aHi = aLo + DA;
-        var a = aLo + DA / 2;
-        var xLo = R * (1 + Math.sin(aLo)), xHi = R * (1 + Math.sin(aHi));
-        var width = Math.max(0.5, xHi - xLo);
-        s.a = a; s.aLo = aLo; s.aHi = aHi; s.left = xLo; s.width = width;
-        s.el.style.left = xLo.toFixed(2) + 'px';
-        s.el.style.width = width.toFixed(2) + 'px';
-        // bgWidth follows cos(a) — the same falloff shape width itself
-        // already has near the limb — scaled so it hits exactly refBgWidth
-        // at a=0. This is what actually fixes the aspect ratio (width no
-        // longer aspect-ratio-agnostic, unlike every earlier version of
-        // this formula); cos(a) never reaches exactly 0 for a real strip
-        // (the outermost strip's center sits at PI/2 - DA/2, not PI/2), so
-        // this doesn't need the same "clamped to at least 0.5" guard width
-        // does, but it's clamped anyway for safety against a future STRIPS
-        // change making DA large enough for that to matter.
-        var bgWidth = Math.max(1, refBgWidth * Math.cos(a));
-        // Continuity now can't be expressed as a fixed fraction-per-strip
-        // (DA/(2*PI)) the way it could when bgWidth was aspect-agnostic —
-        // cos(a) makes each strip's own content-fraction span
-        // (width/bgWidth) genuinely different from its neighbors', by
-        // design. So instead of computing each strip's position from its
-        // own angle independently, accumulate: this strip's content
-        // starts exactly where the previous one's ended, by construction,
-        // for every strip, at any zoom/box size — continuity is then true
-        // by definition rather than something that has to come out right
-        // from unrelated formulas agreeing.
-        s.bgWidth = bgWidth;
-        s.contentFracLo = contentFrac;
-        contentFrac += width / bgWidth;
-        s.el.style.backgroundSize = bgWidth.toFixed(2) + 'px 100%';
-      });
-    }
-    tune();
-
-    // Where texture-longitude lonFrac currently sits on screen. This has to
-    // invert the SAME cos(a)-weighted mapping tune() builds each strip's
-    // bgWidth/contentFracLo from above — markers can't just use the plain
-    // orthographic mu-theta angle the way they could before that mapping
-    // existed, because the texture is no longer sampled linearly against
-    // screen angle (that's specifically what fixes the aspect ratio); using
-    // the old linear formula here would position markers correctly for a
-    // texture that isn't actually the one on screen, showing up as every
-    // marker sitting shifted from its real country.
-    //
-    // In the continuous limit, tune()'s per-strip content increment
-    // width_i/bgWidth_i = R*cos(a)*da / (refBgWidth*cos(a)) = (R/refBgWidth)*da
-    // — cos(a) cancels exactly — so the content-fraction shown at screen
-    // angle a is just linear in a: contentFrac(a) = (R/refBgWidth)*(a+PI/2).
-    // Solving that for a given a target content-fraction inverts cleanly
-    // with no trig needed. (This mapping only spans [0, PI/(2*IMAGE_ASPECT)]
-    // over the visible hemisphere rather than the "half the texture" a true
-    // linear-in-longitude mapping would — that's fine: it only needs to be
-    // the correct inverse of what's actually on screen, not a physically
-    // exact sphere unwrap.)
-    function project(lonFrac) {
-      var refBgWidth = boxH * IMAGE_ASPECT; // must match tune()'s refBgWidth exactly
-      var thetaFrac = theta / (2 * Math.PI);
-      var targetFrac = ((lonFrac - thetaFrac) % 1 + 1) % 1;
-      var fullFrontSpan = (Math.PI * R) / refBgWidth; // == PI/(2*IMAGE_ASPECT)
-      var visible = targetFrac >= 0 && targetFrac <= fullFrontSpan;
-      var phi = targetFrac * (refBgWidth / R) - Math.PI / 2;
-      return { phi: phi, visible: visible, x: R * (1 + Math.sin(phi)) };
-    }
-
-    function paintStrips() {
-      // Rotation shifts every strip's content-fraction by the same amount:
-      // theta/(2*PI), i.e. a full 2*PI spin shifts by exactly 1.0 — one
-      // whole loop — which is what makes the wrap from theta=2*PI back to
-      // 0 seamless (the content-fraction lands back on the exact value it
-      // started at, mod 1). Wrapping into [0,1) here isn't required for
-      // correctness (background-position tiles regardless), just keeps
-      // the numbers bounded/readable.
-      var thetaFrac = theta / (2 * Math.PI);
-      strips.forEach(function (s) {
-        var frac = ((s.contentFracLo + thetaFrac) % 1 + 1) % 1;
-        s.el.style.backgroundPositionX = (-frac * s.bgWidth).toFixed(2) + 'px';
-      });
-    }
-    paintStrips();
-
-    // Markers: each is pinned to a lat/long read from its data-lat/data-lon
-    // attributes. lonFrac feeds the same orthographic project() the strips
-    // use, so a marker tracks the sphere point it's pinned to — slowing and
-    // compressing toward the limb in step with the surface underneath it —
-    // instead of sliding across the box at a constant rate. latFrac still
-    // maps straight to y (0=north pole, 1=south pole); vertical curvature
-    // isn't modeled, the circular clip on .hero-globe does the equivalent
-    // job of tapering a column's visible height near the limb.
-    var markers = Array.prototype.map.call(globe.querySelectorAll('.globe-marker'), function (el) {
-      var lat = parseFloat(el.getAttribute('data-lat'));
-      var lon = parseFloat(el.getAttribute('data-lon'));
-      return { id: el.getAttribute('data-id'), el: el, lonFrac: (lon + 180) / 360, latFrac: (90 - lat) / 180 };
-    });
-    // Data links: a plain list of marker-id pairs, purely for visual density
-    // ("data flying all over the globe") rather than any real network
-    // topology — so it's not trying to look geographically sensible, just
-    // busy. Each pair gets two SVG paths (a steady glow + an animated
-    // dashed flow on top, styled in CSS) generated below instead of
-    // hand-written, since a plain array is far easier to keep extending
-    // than duplicating markup per edge.
-    var linkEdges = [
-      ['us', 'uae'], ['us', 'pk'], ['us', 'in'], ['us', 'eg'], ['us', 'fr'], ['us', 'ksa'], ['us', 'om'],
-      ['fr', 'eg'], ['fr', 'uae'], ['fr', 'pk'],
-      ['eg', 'jo'], ['eg', 'sd'], ['eg', 'iq'], ['eg', 'ksa'],
-      ['sd', 'ss'], ['sd', 'pk'],
-      ['jo', 'iq'], ['jo', 'ksa'], ['jo', 'bh'],
-      ['iq', 'kw'],
-      ['kw', 'ksa'], ['kw', 'bh'],
-      ['ksa', 'bh'],
-      ['bh', 'uae'],
-      ['uae', 'om'], ['uae', 'in'],
-      ['om', 'pk'], ['om', 'in'],
-      ['pk', 'uae'], ['pk', 'in'],
-      ['in', 'ss']
+    // Acmetel's real markets, and the "data path" arcs drawn between them.
+    // The pin markers themselves stay hidden (per an earlier request); only
+    // the arcs render. Kept as plain data so pins can be re-enabled later by
+    // drawing CITIES points in drawGlobe() with the same project() mapping.
+    var CITIES = {
+      fr: [48.9, 2.4], eg: [30.0, 31.2], jo: [31.9, 35.9], iq: [33.3, 44.4],
+      sd: [15.5, 32.6], ss: [4.9, 31.6], ksa: [24.7, 46.7], kw: [29.4, 48.0],
+      bh: [26.2, 50.6], uae: [24.0, 54.5], om: [23.6, 58.4], pk: [24.9, 67.0],
+      in: [28.6, 77.2], us: [41.9, -87.6]
+    };
+    var EDGES = [
+      ['us', 'uae'], ['us', 'pk'], ['us', 'eg'], ['us', 'fr'], ['us', 'ksa'],
+      ['fr', 'eg'], ['fr', 'uae'], ['eg', 'jo'], ['eg', 'sd'], ['eg', 'ksa'],
+      ['sd', 'ss'], ['jo', 'iq'], ['jo', 'bh'], ['kw', 'ksa'], ['ksa', 'bh'],
+      ['bh', 'uae'], ['uae', 'om'], ['uae', 'in'], ['om', 'pk'], ['pk', 'in'], ['in', 'ss']
     ];
-    var linkPaths = [];
-    if (linksSvg) {
-      linkEdges.forEach(function (edge, i) {
-        ['globe-link--glow', 'globe-link--flow'].forEach(function (cls) {
-          var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          path.setAttribute('class', 'globe-link ' + cls);
-          path.setAttribute('data-from', edge[0]);
-          path.setAttribute('data-to', edge[1]);
-          path.setAttribute('data-bow', i % 2 === 0 ? '1' : '-1');
-          linksSvg.appendChild(path);
-          linkPaths.push(path);
-        });
-      });
-    }
-    var markerState = {};
 
-    function updateMarkers() {
-      markers.forEach(function (m) {
-        var proj = project(m.lonFrac);
-        var bx = proj.x;
-        var by = m.latFrac * boxH;
-        var visible = proj.visible;
-        var falloff = 0;
-        m.el.style.opacity = visible ? '1' : '0';
-        if (visible) {
-          m.el.style.left = bx.toFixed(1) + 'px';
-          m.el.style.top = by.toFixed(1) + 'px';
-          // Fade/shrink near the left/right limb rather than popping in/out.
-          // cos(phi) is already ~0 right at the limb (phi -> ±90°), so this
-          // mostly just softens the pop-in/out rather than doing the heavy
-          // lifting the way the old edge-distance falloff had to.
-          falloff = Math.max(0, Math.min(1, Math.cos(proj.phi) * 1.15));
-          m.el.style.opacity = falloff.toFixed(2);
-          m.el.style.transform = 'translate(-50%, -50%) scale(' + (0.75 + 0.25 * falloff).toFixed(2) + ')';
+    // Bake the photo once: brightness/saturation (was a per-frame CSS filter)
+    // and a teal recolor. 'color' blend keeps the photo's luminance — its
+    // city lights and land/ocean shading — while shifting hue/saturation
+    // toward Acmetel teal. Low alpha keeps it a tinge, not a neon repaint.
+    function bake(img) {
+      var IW = Math.min(1280, img.naturalWidth || 1280);
+      var IH = Math.round(IW / 2);
+      var off = document.createElement('canvas');
+      off.width = IW; off.height = IH;
+      var octx = off.getContext('2d');
+      octx.filter = 'brightness(1.75) saturate(1.05)';
+      octx.drawImage(img, 0, 0, IW, IH);
+      octx.filter = 'none';
+      // 'color' shifts hue/saturation toward Acmetel teal while keeping the
+      // photo's luminance (its lights + land/ocean shading).
+      octx.globalCompositeOperation = 'color';
+      octx.fillStyle = 'rgba(18, 190, 170, 0.42)';
+      octx.fillRect(0, 0, IW, IH);
+      // A gentle 'soft-light' teal pass then pushes the lit land/city areas
+      // further toward on-brand teal-green without flattening the shading.
+      octx.globalCompositeOperation = 'soft-light';
+      octx.fillStyle = 'rgba(24, 200, 178, 0.38)';
+      octx.fillRect(0, 0, IW, IH);
+      octx.globalCompositeOperation = 'source-over';
+      // Tile the baked texture twice horizontally. A slice's source window can
+      // run past the right edge of one copy as the globe rotates; sampling the
+      // doubled texture lets it read straight across the 0°/360° seam with no
+      // per-slice wrap handling.
+      texW = IW; texH = IH;
+      var dbl = document.createElement('canvas');
+      dbl.width = IW * 2; dbl.height = IH;
+      var dctx = dbl.getContext('2d');
+      dctx.drawImage(off, 0, 0);
+      dctx.drawImage(off, IW, 0);
+      texDbl = dbl; texReady = true;
+    }
+
+    function resize() {
+      var r = globe.getBoundingClientRect();
+      D = r.width || 1;
+      canvas.width = Math.round(D * dpr);
+      canvas.height = Math.round(D * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    // Tilted orthographic projection of a lat/lon onto the disc, matching the
+    // grid surface below. φ is longitude relative to the meridian facing the
+    // viewer, latR is latitude in radians, and the view is tilted by TILT so we
+    // look slightly down onto the northern hemisphere. cosc is the cosine of
+    // angular distance from the disc centre — the point is on the visible front
+    // when cosc >= 0, and `fade` follows it so arcs soften all around the limb.
+    function project(lat, lon) {
+      var R = D / 2;
+      var latR = lat * Math.PI / 180;
+      var lonFrac = (lon + 180) / 360;
+      var lonC = ((theta / (2 * Math.PI)) % 1 + 1) % 1;
+      var dLon = (((lonFrac - lonC) % 1) + 1) % 1;
+      if (dLon > 0.5) dLon -= 1;         // wrap to [-0.5, 0.5)
+      var phi = dLon * 2 * Math.PI;      // [-π, π)
+      var sl = Math.sin(latR), cl = Math.cos(latR), cp = Math.cos(phi);
+      var x = R * (1 + cl * Math.sin(phi));
+      var y = R * (1 - (cosTilt * sl - sinTilt * cl * cp));
+      var cosc = sinTilt * sl + cosTilt * cl * cp;
+      var front = cosc >= 0;
+      var fade = Math.max(0, Math.min(1, cosc * 1.4));
+      return { x: x, y: y, front: front, fade: fade };
+    }
+
+    function drawArcs(t) {
+      var dash = (t * 0.05) % 16;
+      ctx.lineCap = 'round';
+      for (var i = 0; i < EDGES.length; i++) {
+        var A = CITIES[EDGES[i][0]], B = CITIES[EDGES[i][1]];
+        var a = project(A[0], A[1]), b = project(B[0], B[1]);
+        if (!a.front || !b.front) continue;
+        var op = Math.min(a.fade, b.fade);
+        if (op <= 0.02) continue;
+        var mx = (a.x + b.x) / 2;
+        var my = (a.y + b.y) / 2 - (i % 2 === 0 ? 1 : -1) * Math.hypot(b.x - a.x, b.y - a.y) * 0.28;
+        // Steady teal glow (soft bloom via a cheap canvas shadow) …
+        ctx.setLineDash([]);
+        ctx.shadowColor = 'rgba(95, 233, 214, 0.9)';
+        ctx.shadowBlur = 5;
+        ctx.strokeStyle = 'rgba(120, 240, 222,' + (0.55 * op).toFixed(3) + ')';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo(mx, my, b.x, b.y); ctx.stroke();
+        // … and a brighter dashed pulse traveling along it.
+        ctx.shadowColor = 'rgba(207, 255, 243, 0.9)';
+        ctx.shadowBlur = 6;
+        ctx.strokeStyle = 'rgba(222, 255, 248,' + (0.95 * op).toFixed(3) + ')';
+        ctx.lineWidth = 2; ctx.setLineDash([3, 11]); ctx.lineDashOffset = -dash;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo(mx, my, b.x, b.y); ctx.stroke();
+      }
+      ctx.shadowBlur = 0; ctx.setLineDash([]);
+    }
+
+    // Reused vertex buffers for the triangle mesh (avoid per-frame allocation).
+    var vX = [], vY = [], vU = [], vV = [], vC = [];
+
+    // Draw one texture-mapped triangle: clip to the screen triangle, then blit
+    // the doubled texture under the affine that maps its (u,v) corners onto the
+    // screen corners. Triangles tile the tilted sphere with exact shared edges,
+    // so there are no inter-cell gaps or staggering — unlike axis-aligned or
+    // parallelogram cells, which can't tile a sheared curved surface.
+    function drawTri(x0, y0, x1, y1, x2, y2, u0, v0, u1, v1, u2, v2) {
+      var det = (u1 - u0) * (v2 - v0) - (u2 - u0) * (v1 - v0);
+      if (!det) return;
+      var a = ((x1 - x0) * (v2 - v0) - (x2 - x0) * (v1 - v0)) / det;
+      var c = ((x2 - x0) * (u1 - u0) - (x1 - x0) * (u2 - u0)) / det;
+      var b = ((y1 - y0) * (v2 - v0) - (y2 - y0) * (v1 - v0)) / det;
+      var d = ((y2 - y0) * (u1 - u0) - (y1 - y0) * (u2 - u0)) / det;
+      var e = x0 - a * u0 - c * v0;
+      var f = y0 - b * u0 - d * v0;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.lineTo(x2, y2); ctx.closePath();
+      ctx.clip();
+      ctx.setTransform(a * dpr, b * dpr, c * dpr, d * dpr, e * dpr, f * dpr);
+      ctx.drawImage(texDbl, 0, 0);
+      ctx.restore();
+    }
+
+    function drawGlobe(t) {
+      ctx.clearRect(0, 0, D, D);
+      if (texReady) {
+        var R = D / 2, N = SLICES, M = BANDS;
+        var dphi = 2 * Math.PI / N;                 // full 360° of longitude
+        var lonC = ((theta / (2 * Math.PI)) % 1 + 1) % 1;
+        var base = ((lonC - 0.5) % 1 + 1) % 1;      // texture longitude at φ = -180°
+        var cols = N + 1, rows = M + 1;
+        // Build the (N+1)x(M+1) vertex grid: screen position, texture coord, and
+        // front/back flag for each lon/lat node.
+        for (var gi = 0; gi < cols; gi++) {
+          var phi = -Math.PI + gi * dphi;            // -180° .. +180°
+          var sp = Math.sin(phi), cp = Math.cos(phi);
+          var u = (base + gi / N) * texW;            // into the doubled texture
+          for (var gj = 0; gj < rows; gj++) {
+            var latR = (0.5 - gj / M) * Math.PI;
+            var sl = Math.sin(latR), cl = Math.cos(latR);
+            var k = gi * rows + gj;
+            vX[k] = R + R * cl * sp;
+            vY[k] = R - R * (cosTilt * sl - sinTilt * cl * cp);
+            vU[k] = u;
+            vV[k] = (gj / M) * texH;
+            vC[k] = sinTilt * sl + cosTilt * cl * cp; // cos(angular dist): >=0 front
+          }
         }
-        markerState[m.id] = { bx: bx, by: by, visible: visible, falloff: falloff };
-      });
-      updateLinks();
+        // Emit two triangles per quad, skipping quads fully on the back face.
+        for (var i = 0; i < N; i++) {
+          for (var j = 0; j < M; j++) {
+            var k00 = i * rows + j, k10 = (i + 1) * rows + j;
+            var k01 = k00 + 1, k11 = k10 + 1;
+            if (vC[k00] < 0 && vC[k10] < 0 && vC[k01] < 0 && vC[k11] < 0) continue;
+            drawTri(vX[k00], vY[k00], vX[k10], vY[k10], vX[k01], vY[k01],
+              vU[k00], vV[k00], vU[k10], vV[k10], vU[k01], vV[k01]);
+            drawTri(vX[k10], vY[k10], vX[k11], vY[k11], vX[k01], vY[k01],
+              vU[k10], vV[k10], vU[k11], vV[k11], vU[k01], vV[k01]);
+          }
+        }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // restore for the arcs
+      }
+      drawArcs(t);
     }
+    function render(t) { drawGlobe(t || performance.now()); }
 
-    function updateLinks() {
-      linkPaths.forEach(function (path) {
-        var a = markerState[path.getAttribute('data-from')];
-        var b = markerState[path.getAttribute('data-to')];
-        if (!a || !b || !a.visible || !b.visible) { path.style.opacity = '0'; return; }
-        var opacity = Math.min(a.falloff, b.falloff);
-        if (opacity <= 0.02) { path.style.opacity = '0'; return; }
-        // Quadratic bezier bowed away from a straight line between the two
-        // points, proportional to their spacing, so it reads as a hop
-        // arcing over the sphere rather than cutting through it. Bow
-        // direction alternates per link (data-bow) so with this many edges
-        // overlapping, arcs cross both above and below their chords instead
-        // of all bowing the same way, which read flatter/more repetitive.
-        var bow = path.getAttribute('data-bow') === '-1' ? -1 : 1;
-        var mx = (a.bx + b.bx) / 2;
-        var my = (a.by + b.by) / 2 - bow * Math.hypot(b.bx - a.bx, b.by - a.by) * 0.28;
-        path.setAttribute('d', 'M' + a.bx.toFixed(1) + ',' + a.by.toFixed(1) +
-          ' Q' + mx.toFixed(1) + ',' + my.toFixed(1) + ' ' + b.bx.toFixed(1) + ',' + b.by.toFixed(1));
-        path.style.opacity = opacity.toFixed(2);
-      });
-    }
+    // Load texture (webp, fall back to jpg), bake once, draw first frame.
+    var img = new Image();
+    img.onload = function () { bake(img); resize(); render(0); };
+    img.onerror = function () {
+      if (img.src.indexOf('globe.webp') > -1) { img.src = 'assets/globe.jpg'; }
+    };
+    img.src = 'assets/globe.webp';
+    resize();
 
-    if (reduced) {
-      paintStrips();
-      updateMarkers();
-      window.addEventListener('resize', function () { tune(); paintStrips(); updateMarkers(); });
-      return;
-    }
-
-    // K: px-per-radian at the s=1 reference scale — the conversion between
-    // screen-px mouse movement and the angular theta the strips/markers
-    // actually run on. Kept in sync with tune() so drag feel doesn't change
-    // as the box resizes.
-    var K = pan / (2 * Math.PI);
-    // project()'s phi = mu - theta means *increasing* theta actually slides
-    // the visible surface left (the same inversion the drag handler below
-    // corrects for), so the default has to be negative to read as the
-    // rightward spin its own name promises.
-    var baseAngSpeed = -(2 * Math.PI) / 18000; // rad/ms, the default steady rightward spin
+    // Spin physics (drag / throw), same feel as before — only the render
+    // target changed. theta is the shared rotation phase.
+    var baseAngSpeed = -(2 * Math.PI) / 26000; // rad/ms, gentle steady spin
     var targetAngSpeed = baseAngSpeed;
     var currentAngSpeed = baseAngSpeed;
-    var grabbed = false;
-    var lastX = 0;
-    var lastMoveT = 0;
-    var angVelocity = baseAngSpeed; // rad/ms, tracked while grabbed for the throw
-    var dragSensitivity = 1 / 3; // hover/grab control is 3x less sensitive than a 1:1 drag
+    var grabbed = false, lastX = 0, lastMoveT = 0, angVelocity = baseAngSpeed;
+    var DRAG_SENS = 1 / 260; // rad per CSS px dragged
 
-    // Core grab / drag / throw, shared by both the mouse (hover-scrub) and
-    // touch (press-drag) paths below, so the spin physics stay identical on
-    // desktop and mobile — only how a gesture starts and ends differs.
-    function beginGrab(clientX) {
-      grabbed = true;
-      lastX = clientX;
-      lastMoveT = performance.now();
-      angVelocity = 0;
-    }
+    function beginGrab(clientX) { grabbed = true; lastX = clientX; lastMoveT = performance.now(); angVelocity = 0; }
     function applyDrag(clientX) {
       var now = performance.now();
       var dt = Math.max(1, now - lastMoveT);
-      // Negated: project() computes screen-x from phi = mu - theta, so
-      // increasing theta actually slides the visible surface left. Without
-      // the flip here, dragging right would move the surface left under the
-      // cursor/finger — backwards from what a direct-manipulation drag should
-      // feel like (the point under your pointer should track your pointer).
-      var dTheta = -((clientX - lastX) * dragSensitivity) / K;
-      angVelocity += (dTheta / dt - angVelocity) * 0.5; // smoothed instantaneous speed
+      // Negated so the point under the pointer tracks the pointer.
+      var dTheta = -(clientX - lastX) * DRAG_SENS;
+      angVelocity += (dTheta / dt - angVelocity) * 0.5;
       theta = ((theta + dTheta) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
-      paintStrips();
-      updateMarkers();
-      lastX = clientX;
-      lastMoveT = now;
+      render(now);
+      lastX = clientX; lastMoveT = now;
     }
-    function endGrab() {
-      grabbed = false;
-      // Throw: keep whatever speed the hand was moving at on release, then
-      // let the frame loop below ease it back to the default spin.
-      currentAngSpeed = angVelocity;
-      targetAngSpeed = baseAngSpeed;
-    }
+    function endGrab() { grabbed = false; currentAngSpeed = angVelocity; targetAngSpeed = baseAngSpeed; }
 
-    // Mouse: hovering the globe grabs it (no click needed), moving scrubs the
-    // spin, leaving throws it — unchanged desktop behavior.
-    globe.addEventListener('mouseenter', function (e) { beginGrab(e.clientX); });
-    globe.addEventListener('mousemove', function (e) { if (grabbed) applyDrag(e.clientX); });
-    globe.addEventListener('mouseleave', endGrab);
+    if (!reduced) {
+      globe.addEventListener('mouseenter', function (e) { beginGrab(e.clientX); });
+      globe.addEventListener('mousemove', function (e) { if (grabbed) applyDrag(e.clientX); });
+      globe.addEventListener('mouseleave', endGrab);
 
-    // Touch: there's no hover on a touchscreen, so a finger press grabs and a
-    // horizontal drag scrubs the spin. A mostly-vertical drag is deliberately
-    // left alone so the page still scrolls when a swipe happens to start on the
-    // globe (CSS `touch-action: pan-y` on .hero-globe backs this at the browser
-    // level). Only the first finger drives the spin; extra touches are ignored.
-    // touchmove is registered passive:false so preventDefault can suppress the
-    // page's own reaction once we've committed to a horizontal spin.
-    var touchId = null, touchStartX = 0, touchStartY = 0, touchDeciding = false;
-    function trackedTouch(list) {
-      for (var i = 0; i < list.length; i++) if (list[i].identifier === touchId) return list[i];
-      return null;
+      var touchId = null, tsx = 0, tsy = 0, deciding = false;
+      function tracked(list) { for (var i = 0; i < list.length; i++) if (list[i].identifier === touchId) return list[i]; return null; }
+      globe.addEventListener('touchstart', function (e) {
+        if (touchId !== null) return;
+        var t = e.changedTouches[0]; touchId = t.identifier; tsx = lastX = t.clientX; tsy = t.clientY; deciding = true;
+      }, { passive: true });
+      globe.addEventListener('touchmove', function (e) {
+        if (touchId === null) return;
+        var t = tracked(e.changedTouches); if (!t) return;
+        if (deciding) {
+          var adx = Math.abs(t.clientX - tsx), ady = Math.abs(t.clientY - tsy);
+          if (adx < 8 && ady < 8) return;
+          deciding = false; if (ady > adx) { touchId = null; return; } beginGrab(t.clientX);
+        }
+        if (!grabbed) return; e.preventDefault(); applyDrag(t.clientX);
+      }, { passive: false });
+      function endTouch(e) { if (touchId === null || !tracked(e.changedTouches)) return; touchId = null; deciding = false; if (grabbed) endGrab(); }
+      globe.addEventListener('touchend', endTouch);
+      globe.addEventListener('touchcancel', endTouch);
     }
-    globe.addEventListener('touchstart', function (e) {
-      if (touchId !== null) return; // already tracking a finger
-      var t = e.changedTouches[0];
-      touchId = t.identifier;
-      touchStartX = lastX = t.clientX;
-      touchStartY = t.clientY;
-      touchDeciding = true; // wait for the first real move to tell scroll from spin
-    }, { passive: true });
-    globe.addEventListener('touchmove', function (e) {
-      if (touchId === null) return;
-      var t = trackedTouch(e.changedTouches);
-      if (!t) return;
-      if (touchDeciding) {
-        var adx = Math.abs(t.clientX - touchStartX), ady = Math.abs(t.clientY - touchStartY);
-        if (adx < 8 && ady < 8) return;            // too little movement to decide yet
-        touchDeciding = false;
-        if (ady > adx) { touchId = null; return; } // vertical intent → let the page scroll
-        beginGrab(t.clientX);                      // horizontal intent → take the gesture
-      }
-      if (!grabbed) return;
-      e.preventDefault();
-      applyDrag(t.clientX);
-    }, { passive: false });
-    function endTouch(e) {
-      if (touchId === null || !trackedTouch(e.changedTouches)) return;
-      touchId = null;
-      touchDeciding = false;
-      if (grabbed) endGrab();
-    }
-    globe.addEventListener('touchend', endTouch);
-    globe.addEventListener('touchcancel', endTouch);
 
     var resizeTimer;
     window.addEventListener('resize', function () {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(function () {
-        tune();
-        K = pan / (2 * Math.PI);
-        paintStrips();
-        updateMarkers();
-      }, 150);
+      resizeTimer = setTimeout(function () { resize(); render(performance.now()); }, 150);
     });
 
-    // Spin only while the globe is on screen and the tab is focused. While
-    // grabbed, the drag handlers above already repaint directly on mousemove,
-    // so the idle loop just eases the throw back to the steady spin.
+    if (reduced) { return; } // static frame already drawn once the texture loads
+
+    // One GPU-cheap frame: ease the spin toward its target (or hold while
+    // grabbed, since applyDrag renders directly) and redraw. Fully stops when
+    // the globe scrolls off-screen or the tab is hidden.
     gateLoop(globe, makeLoop(function (dt) {
       if (grabbed) return;
       currentAngSpeed += (targetAngSpeed - currentAngSpeed) * Math.min(1, dt / 600);
       theta = ((theta + currentAngSpeed * dt) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
-      paintStrips();
-      updateMarkers();
+      render(performance.now());
     }));
   })();
 

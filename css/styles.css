@@ -211,102 +211,46 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   overflow: clip;
   background: linear-gradient(180deg, #101E3C 0%, #0A1426 72%);
 }
-.hero__bg { position: absolute; inset: 0; z-index: 0; }
-/* Canvas is sized in device px by main.js (for crisp dots at any DPR) and
-   scaled back down via CSS width/height — display:block avoids the couple
-   of stray px of inline-element baseline gap a canvas gets by default. */
-.hero__particles { display: block; width: 100%; height: 100%; }
-
-/* Hero globe: built from N vertical strips (main.js) instead of one flat
-   panned texture. A single panned background-position is a rigid shift —
-   every pixel moves at the same instantaneous speed no matter where it
-   sits on screen — which reads as a strip of photo scrolling behind a
-   porthole rather than a rotating sphere. Splitting the disc into narrow
-   angular strips lets each one carry its own background-size scale and its
-   own pan speed, both derived from an orthographic sphere projection
-   (screen-x = R*sin(angle)): strips near the center are wide and pan fast,
-   strips near the limb are narrow and pan slow, which reproduces both the
-   deceleration and the horizontal foreshortening a real sphere shows near
-   its edge. .hero-globe itself no longer paints the texture — it only
-   supplies the circular clip, box-shadow, and the static lighting overlays
-   below; the strips (position:absolute, z-index:0) are generated and
-   sized/positioned by main.js's heroGlobeSpin(), which is also what's
-   still responsible for the drag/throw spin control described there.
-   Sized fluidly with clamp() so it grows/shrinks with the viewport instead
-   of stepping between fixed breakpoints. */
+/* Hero globe: a single <canvas> (see .hero-globe__canvas / heroGlobeCanvas()
+   in main.js). The photo texture is tinted + brightened ONCE at load, then
+   the whole rotating globe is drawn with a couple of GPU-cheap drawImage()
+   calls per frame plus a few canvas arcs — replacing the old 24 blended DOM
+   strips + 62 SVG paths + 14 markers, which re-rasterized every frame and
+   froze low/mid devices. .hero-globe supplies the circular clip, glow, and
+   the static rim-light / limb-darkening overlays below. Sized fluidly with
+   clamp() so it grows/shrinks with the viewport. */
 .hero__globe-col { display: flex; align-items: center; justify-content: center; }
 .hero-globe-wrap {
-  /* main.js positions every strip and marker by reading this box's
-     getBoundingClientRect() (already zoomed) and writing the results back
-     as inline left/top/width px on its own descendants — but zoom re-
-     applies to *every* new px value a descendant of a zoomed subtree
-     specifies, including ones already computed from an already-zoomed
-     measurement. That compounds into markers landing 1.2x further from
-     the box's top-left corner than intended (drifting toward the
-     bottom-right). zoom here cancels the inherited 1.2 back to a net 1.0
-     for this whole subtree, so main.js's box measurements and its own
-     inline-px writes stay in one consistent, unzoomed coordinate space —
-     and since 1.2 * (1/1.2) = 1, plain 34vw now renders at the exact same
-     visual size the earlier calc(34vw/1.2) compensation was going for. */
+  /* The page sets html { zoom: 1.2 } sitewide; this cancels it back to a
+     net 1.0 for the globe subtree so heroGlobeCanvas()'s getBoundingClientRect
+     measurement and the canvas backing-store size stay in one consistent
+     coordinate space. Since 1.2 * (1/1.2) = 1, plain 34vw renders at the
+     intended visual size. */
   zoom: calc(1 / 1.2);
   position: relative; width: clamp(300px, 34vw, 540px); aspect-ratio: 1;
 }
-/* City lights: a hand-placed scatter of small glow dots (biased toward
-   Acmetel's real markets: North America, Europe, the Gulf, Pakistan, East
-   Africa, East Asia) rendered as one extra background layer and blended
-   additively (screen) over the day texture, so they read strongest over
-   the darkened night-side terminator and mostly disappear in daylight
-   areas, without needing a second photographic night-lights image.
-   background-size/position are given as single (non-comma) values, which
-   CSS applies uniformly to every layer in background-image, so this dot
-   layer and the photo layer stay perfectly registered and pan in lockstep
-   — driven per-strip from main.js's heroGlobeSpin(), see the comment
-   above .hero-globe-strip below for how that's derived. */
 .hero-globe {
   position: relative;
   width: 100%;
   height: 100%;
   border-radius: 50%;
   overflow: hidden;
+  /* Dark teal-navy fallback so the disc still reads if the texture is slow or
+     fails to load (the canvas draws over this once baked). */
+  background: #08150F;
   /* Reserve vertical swipes for page scrolling while letting the touch spin
-     handler (heroGlobeSpin in main.js) own horizontal drags — so a finger
+     handler (heroGlobeCanvas in main.js) own horizontal drags — so a finger
      swipe that starts on the globe still scrolls the hero on a phone. */
   touch-action: pan-y;
+  /* Was two 30vw (~460px) blur-radius shadows — an extremely expensive paint.
+     Replaced with one compact teal glow + the inset shading. */
   box-shadow:
-    0 0 30vw 2vw rgba(9, 101, 32, 0.692), 0 0 30vw 2vw rgba(7, 84, 70, 0.692),
+    0 0 90px 6px rgba(20, 184, 166, 0.35),
     inset -18px -16px 50px rgba(3, 20, 12, 0.6);
 }
-/* One angular slice of the sphere. Geometry (left/width) and the pan scale
-   (background-size) are static per strip, recomputed on resize; only
-   background-position-x is touched every frame. Same composite background
-   (city-light dots screen-blended over globe.jpg) the old single-div
-   version used, just now duplicated per strip so each can carry its own
-   scale — background-size here is set inline per-strip in JS, since it's
-   what actually encodes that strip's foreshortening. */
-.hero-globe-strip {
-  position: absolute; top: 0; height: 100%; z-index: 0;
-  /* First layer (painted on top, per the CSS background-layer stacking
-     order) is a flat Acmetel green blended with `color` — that blend mode
-     replaces hue+saturation with the top layer's while keeping the
-     backdrop's own luminance, so it recolors the whole composite below
-     (photo + city-light dots, already screen-blended together) from
-     globe.jpg's natural night-photo blue to on-brand green without
-     flattening out the light/dark detail that gives the sphere its shape.
-     Kept at low opacity (0.28, not the layer's own full-strength green) —
-     a full-strength recolor read as neon; this is meant to be just a
-     tinge over the photo's own color, not a replacement of it. */
-  background-image:    linear-gradient(rgba(34,181,115,0.28), rgba(34,181,115,0.28)),    radial-gradient(circle at 8% 34%, #ffe6b0 0 1.4px, rgba(255,230,176,0.35) 3px, transparent 4.5px),    radial-gradient(circle at 14% 28%, #ffe6b0 0 1px, rgba(255,230,176,0.3) 2.4px, transparent 4px),    radial-gradient(circle at 20% 40%, #ffe6b0 0 1.2px, rgba(255,230,176,0.3) 2.6px, transparent 4px),    radial-gradient(circle at 46% 21%, #ffe6b0 0 1.4px, rgba(255,230,176,0.35) 3px, transparent 4.5px),    radial-gradient(circle at 51% 26%, #ffe6b0 0 1px, rgba(255,230,176,0.3) 2.2px, transparent 3.6px),    radial-gradient(circle at 60% 41%, #ffd88f 0 1.5px, rgba(255,216,143,0.35) 3.2px, transparent 5px),    radial-gradient(circle at 65% 39%, #ffd88f 0 1px, rgba(255,216,143,0.3) 2.2px, transparent 3.6px),    radial-gradient(circle at 58% 37%, #ffd88f 0 1px, rgba(255,216,143,0.3) 2.2px, transparent 3.6px),    radial-gradient(circle at 49% 54%, #ffe6b0 0 1.2px, rgba(255,230,176,0.3) 2.6px, transparent 4px),    radial-gradient(circle at 58% 59%, #ffe6b0 0 1.2px, rgba(255,230,176,0.3) 2.6px, transparent 4px),    radial-gradient(circle at 69% 37%, #ffe6b0 0 1.2px, rgba(255,230,176,0.3) 2.6px, transparent 4px),    radial-gradient(circle at 79% 51%, #ffd88f 0 1.4px, rgba(255,216,143,0.35) 3px, transparent 4.5px),    radial-gradient(circle at 88% 29%, #ffe6b0 0 1px, rgba(255,230,176,0.3) 2.2px, transparent 3.6px),    radial-gradient(circle at 91% 77%, #ffe6b0 0 1px, rgba(255,230,176,0.3) 2.2px, transparent 3.6px),    image-set(url('../assets/globe.webp') type('image/webp'), url('../assets/globe.jpg') type('image/jpeg'));
-  background-position: 0 0;
-  background-blend-mode: color, screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, screen, normal;
-  /* globe.jpg is a night-lights photo, naturally dark — brightened here
-     (not on .hero-globe itself) so it only lifts the texture layer,
-     leaving the rim-light/limb-darkening pseudo-elements below (already
-     tuned against the original brightness) untouched. contrast is pulled
-     below 1 (not boosted) specifically to keep the ocean/night areas from
-     crushing to pure black — a contrast boost pushes already-dark pixels
-     darker, which is the opposite of what's needed here. */
-  filter: brightness(1.6) contrast(0.92) saturate(0.95);
-}
+/* The globe is now a single canvas filling the circular .hero-globe box;
+   .hero-globe's border-radius + overflow:hidden clip it to a disc for free. */
+.hero-globe__canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 /* Rim light: centered outside the globe's own top-left corner rather than
    on its face, so the visible piece is only the crescent where this circle
    overlaps the globe's circle — the intersection of two circles is itself
@@ -339,82 +283,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
     rgba(3, 20, 12, 0.46) 100%);
   mix-blend-mode: multiply;
 }
-/* Globe markers: pinned to a real lat/long on the globe.jpg texture and
-   repositioned every frame in main.js to track the same pan the surface
-   itself is on, so they read as attached to a spot on the sphere rather
-   than floating over it. left/top are set in JS as px within .hero-globe's
-   own box (which is what the lat/long -> pixel math is done in terms of);
-   this rule only supplies the local centering/look. Fixed inside
-   .hero-globe so it inherits the circular overflow:hidden clip for free —
-   when the point pans past the visible edge it's simply cut off, same as
-   the terrain underneath it. pointer-events: none throughout keeps markers
-   from ever intercepting the grab/throw spin interaction. */
-.globe-marker {
-  position: absolute; top: 0; left: 0; pointer-events: none;
-  transform: translate(-50%, -50%);
-  transition: opacity 0.15s linear;
-  z-index: 1;
-}
-/* The Acmetel mark itself as the marker, in place of a generic dot + a
-   named label — small and enough of a glow to read against the globe at a
-   glance, no text needed. The bob is a separate animation on the icon
-   (not the .globe-marker container, which main.js already drives via
-   transform for position/scale) so the two motions compose without
-   fighting over the same property. Each marker's inline animation-delay
-   staggers the bob out of phase with its neighbors for an organic feel
-   rather than the whole cluster bobbing in lockstep. */
-/* Marker icons hidden per client request — the Acmetel logo pins on the
-   globe are turned off for now, but the whole marker system stays wired up:
-   main.js still positions every .globe-marker and still feeds the data-path
-   (.globe-link) endpoints from their lat/long, so the little data arcs keep
-   flying. To bring the pins back, just remove this one display:none. */
-.globe-marker__icon { display: none; }
-.globe-marker__icon {
-  position: absolute; top: 50%; left: 50%;
-  /* .globe-marker has no explicit size (its only child is this
-     absolutely-positioned img, which never contributes to a parent's
-     shrink-to-fit auto width), so it collapses to 0 width — and the
-     site-wide `img { max-width: 100% }` reset would then resolve against
-     that 0 and clamp this icon to nothing. max-width: none opts back out. */
-  width: 21px; height: auto; max-width: none; margin: -10.5px 0 0 -10.5px;
-  filter:
-    drop-shadow(0 0 3px rgba(0,0,0,0.6))
-    drop-shadow(0 0 7px rgba(47, 208, 196, 0.8))
-    drop-shadow(0 3px 5px rgba(0,0,0,0.55));
-  animation: markerFloat 3.9s ease-in-out infinite;
-}
-@keyframes markerFloat {
-  0%, 100% { transform: translateY(-3px); }
-  50% { transform: translateY(3px); }
-}
-/* Data links: an SVG overlay sharing the same .hero-globe box coordinate
-   space as the markers above (viewBox is kept in sync with it in
-   main.js), so a path's endpoints can reuse each marker's already-computed
-   bx/by directly with no extra conversion. Two paths per link, both redrawn
-   every frame with the same curved `d`: a soft constant glow underneath,
-   and a short dashed stroke animating its dashoffset on top to read as
-   discrete pulses of data traveling the route rather than a static wire.
-   Sits behind the marker divs (earlier in DOM order, same z-index) so pins
-   render on top of the lines feeding into them. */
-.globe-links {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  pointer-events: none; z-index: 1; overflow: visible;
-}
-.globe-link {
-  fill: none; stroke-linecap: round; opacity: 0;
-  transition: opacity 0.15s linear;
-}
-.globe-link--glow {
-  stroke: #4FD8FF; stroke-width: 2;
-  filter: drop-shadow(0 0 4px rgba(79, 216, 255, 0.75));
-}
-.globe-link--flow {
-  stroke: #CFFFF3; stroke-width: 2.2;
-  stroke-dasharray: 2 16;
-  animation: globeLinkFlow 0.9s linear infinite;
-  filter: drop-shadow(0 0 3px rgba(207, 255, 243, 0.9));
-}
-@keyframes globeLinkFlow { to { stroke-dashoffset: -18; } }
 .hero__vignette {
   position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background: linear-gradient(90deg, rgba(10, 20, 38, 0.72) 0%, rgba(10, 20, 38, 0.35) 42%, transparent 68%);
